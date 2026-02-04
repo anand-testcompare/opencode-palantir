@@ -23,7 +23,8 @@
   },
   "files": [
     "dist",
-    "src/version.ts"
+    "src/version.ts",
+    "data"
   ],
   "devDependencies": {
     "@eslint/js": "^9.39.1",
