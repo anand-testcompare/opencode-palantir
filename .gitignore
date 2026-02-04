@@ -10,3 +10,5 @@ coverage/
 .bun/
 .bun.lockb
 .memory/
+
+.sisyphus/
