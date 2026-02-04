@@ -24,6 +24,12 @@ export default tseslint.config(
         Buffer: 'readonly',
         // Bun globals
         Bun: 'readonly',
+        // Web API globals (available in Bun)
+        fetch: 'readonly',
+        Response: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
+        setTimeout: 'readonly',
       },
     },
     plugins: {
