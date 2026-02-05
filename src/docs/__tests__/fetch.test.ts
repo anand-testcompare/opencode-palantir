@@ -14,30 +14,20 @@ import {
   type PagefindEntry,
 } from '../fetch.ts';
 
-/** 12‑byte `pagefind_dcd` header + gzipped payload — mirrors Pagefind's binary format */
 function makePagefindBuffer(payload: Uint8Array): Uint8Array {
   const header = new TextEncoder().encode('pagefind_dcd');
-  const compressed = gzipSync(Buffer.from(payload));
-  const buf = new Uint8Array(header.length + compressed.length);
-  buf.set(header);
-  buf.set(new Uint8Array(compressed), header.length);
-  return buf;
+  const withHeader = new Uint8Array(header.length + payload.length);
+  withHeader.set(header);
+  withHeader.set(payload, header.length);
+  return new Uint8Array(gzipSync(Buffer.from(withHeader)));
 }
 
-/** Wraps a CBOR‑encoded pf_meta structure in Pagefind binary format */
 function makeMetaBuffer(pages: Array<{ page_hash: string; word_count: number }>): Uint8Array {
-  const cbor = encode({
-    version_string: '1.0.0',
-    pages,
-    index_chunks: 0,
-    filter_chunks: 0,
-    sorts: [],
-    meta_fields: [],
-  });
+  const pagesArray = pages.map((p) => [p.page_hash, p.word_count]);
+  const cbor = encode(['1.0.0', pagesArray, [], [], []]);
   return makePagefindBuffer(new Uint8Array(cbor));
 }
 
-/** Wraps a JSON fragment in Pagefind binary format */
 function makeFragmentBuffer(fragment: Record<string, unknown>): Uint8Array {
   const json = new TextEncoder().encode(JSON.stringify(fragment));
   return makePagefindBuffer(json);
@@ -77,9 +67,14 @@ describe('Pagefind Fetcher', () => {
       expect(new TextDecoder().decode(result)).toBe('hello pagefind');
     });
 
-    it('throws on buffer shorter than 12 bytes', () => {
-      const tiny = new Uint8Array(8);
-      expect(() => decompressPagefind(tiny)).toThrow(/shorter than.*12/i);
+    it('throws on invalid gzip data', () => {
+      const invalid = new Uint8Array(8);
+      expect(() => decompressPagefind(invalid)).toThrow(/header check/i);
+    });
+
+    it('throws when decompressed data is shorter than header', () => {
+      const tooShort = gzipSync(Buffer.from('short'));
+      expect(() => decompressPagefind(new Uint8Array(tooShort))).toThrow(/shorter than.*12/i);
     });
   });
 

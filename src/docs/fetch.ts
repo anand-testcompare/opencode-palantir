@@ -33,14 +33,22 @@ const BACKOFF_FACTOR = 2;
 const JITTER_RANGE = 0.25;
 const BATCH_SIZE = 100;
 
+/**
+ * Decompress Pagefind data.
+ * Format: gzip compressed → 12-byte "pagefind_dcd" header → payload (CBOR or JSON)
+ */
 export function decompressPagefind(data: Uint8Array): Uint8Array {
-  if (data.length < PAGEFIND_HEADER_SIZE) {
+  // First: gunzip the raw data
+  const decompressed = gunzipSync(Buffer.from(data));
+
+  // Then: strip the 12-byte "pagefind_dcd" header
+  if (decompressed.length < PAGEFIND_HEADER_SIZE) {
     throw new Error(
-      `Pagefind buffer is ${data.length} bytes, shorter than required ${PAGEFIND_HEADER_SIZE}-byte header`
+      `Decompressed Pagefind data is ${decompressed.length} bytes, shorter than required ${PAGEFIND_HEADER_SIZE}-byte header`
     );
   }
-  const compressed = data.slice(PAGEFIND_HEADER_SIZE);
-  return new Uint8Array(gunzipSync(Buffer.from(compressed)));
+
+  return new Uint8Array(decompressed.slice(PAGEFIND_HEADER_SIZE));
 }
 
 function isRetryable(status: number): boolean {
@@ -96,9 +104,10 @@ export async function fetchAndParseMeta(langHash: string): Promise<string[]> {
   const buffer = new Uint8Array(await response.arrayBuffer());
   const decompressed = decompressPagefind(buffer);
 
-  let decoded: { pages?: Array<{ page_hash: string }> };
+  type PagefindMeta = [string, Array<[string, number]>, ...unknown[]];
+  let decoded: PagefindMeta;
   try {
-    decoded = decode(decompressed) as typeof decoded;
+    decoded = decode(decompressed) as PagefindMeta;
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     throw new Error(
@@ -106,13 +115,13 @@ export async function fetchAndParseMeta(langHash: string): Promise<string[]> {
     );
   }
 
-  if (!decoded.pages || !Array.isArray(decoded.pages)) {
+  if (!Array.isArray(decoded) || !Array.isArray(decoded[1])) {
     throw new Error(
-      'Failed to decode pf_meta: missing pages array. The Pagefind binary format may have changed.'
+      'Failed to decode pf_meta: unexpected structure. The Pagefind binary format may have changed.'
     );
   }
 
-  return decoded.pages.map((p) => p.page_hash);
+  return decoded[1].map((page) => page[0]);
 }
 
 export async function fetchFragment(hash: string): Promise<PageRecord> {
