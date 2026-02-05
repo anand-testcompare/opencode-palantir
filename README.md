@@ -1,11 +1,11 @@
 # palantir-opencode-plugin
 
-OpenCode plugin that provides Palantir Foundry documentation to AI agents via local SQLite storage.
+OpenCode plugin that provides Palantir Foundry documentation to AI agents via local Parquet storage.
 
 ## Features
 
 - Fetches all ~3,600 pages from Palantir's public documentation
-- Stores in local SQLite for fast offline access
+- Stores in local Parquet file for fast offline access (~17MB)
 - Exposes `get_doc_page` and `list_all_docs` tools for AI agents
 
 ## Setup
@@ -16,80 +16,53 @@ bun install
 
 ## Fetching Documentation
 
-Fetch all Palantir docs into `data/docs.db` (~2 minutes, ~20MB database):
+Fetch all Palantir docs into `data/docs.parquet` (~2 minutes, ~17MB file):
 
 ```bash
 bun run src/docs/fetch-cli.ts
 ```
 
-## Querying the Database
+## Querying the Data
 
 ### Schema
 
-```sql
-CREATE TABLE pages (
-  url TEXT PRIMARY KEY,
-  title TEXT,
-  content TEXT,
-  word_count INTEGER,
-  meta TEXT,
-  fetched_at TEXT
-);
+The Parquet file contains a single row group with the following columns:
 
-CREATE INDEX idx_title ON pages(title);
-
-CREATE VIRTUAL TABLE pages_fts USING fts5(url, title, content);
-```
-
-### SQLite CLI
-
-Count pages:
-
-```bash
-sqlite3 data/docs.db "SELECT COUNT(*) FROM pages"
-```
-
-Search by title:
-
-```bash
-sqlite3 data/docs.db "SELECT url, title FROM pages WHERE title LIKE '%Pipeline%' LIMIT 10"
-```
-
-Full-text search:
-
-```bash
-sqlite3 data/docs.db "SELECT url, title FROM pages_fts WHERE pages_fts MATCH 'ontology' LIMIT 10"
-```
-
-Get page content:
-
-```bash
-sqlite3 data/docs.db "SELECT content FROM pages WHERE url = '/foundry/ontology/overview/'"
-```
+| Column       | Type    | Description                         |
+| ------------ | ------- | ----------------------------------- |
+| `url`        | string  | Page URL path (e.g. `/foundry/...`) |
+| `title`      | string  | Page title                          |
+| `content`    | string  | Full page content (Markdown)        |
+| `word_count` | integer | Word count of content               |
+| `meta`       | string  | JSON-encoded metadata               |
+| `fetched_at` | string  | ISO 8601 timestamp of when fetched  |
 
 ### Bun
 
 ```typescript
-import Database from 'bun:sqlite';
+import { parquetReadObjects } from 'hyparquet';
 
-const db = new Database('data/docs.db', { readonly: true });
+const file = await Bun.file('data/docs.parquet').arrayBuffer();
 
-// List all pages
-const pages = db.query('SELECT url, title FROM pages').all();
+// List all pages (url + title only)
+const pages = await parquetReadObjects({ file, columns: ['url', 'title'] });
+console.log(`${pages.length} pages`);
 
-// Full-text search
-const results = db
-  .query(
-    `
-  SELECT url, title, snippet(pages_fts, 2, '**', '**', '...', 30) as excerpt
-  FROM pages_fts
-  WHERE pages_fts MATCH ?
-  LIMIT 10
-`
-  )
-  .all('transforms');
+// Search by title
+const matches = pages.filter((p) => p.title.includes('Pipeline'));
+console.log(matches.slice(0, 10));
 
-db.close();
+// Get a specific page's content by row index
+const urlToRow = new Map(pages.map((p, i) => [p.url, i]));
+const rowIndex = urlToRow.get('/foundry/ontology/overview/');
+if (rowIndex !== undefined) {
+  const [page] = await parquetReadObjects({
+    file,
+    rowStart: rowIndex,
+    rowEnd: rowIndex + 1,
+  });
+  console.log(page.content);
+}
 ```
 
 ## OpenCode Tools
@@ -98,6 +71,21 @@ When installed as an OpenCode plugin, exposes:
 
 - **`get_doc_page`** - Retrieve a specific doc page by URL
 - **`list_all_docs`** - List all available documentation pages
+- **`/refresh-docs`** - Command hook to re-fetch all documentation
+
+### Installing in OpenCode (this project only)
+
+Symlink the built artifact into the project-level auto-discovered plugins directory:
+
+```bash
+mkdir -p .opencode/plugins
+```
+
+```bash
+ln -s ../../dist/index.js .opencode/plugins/palantir.js
+```
+
+OpenCode automatically loads any `.js`/`.ts` files in `.opencode/plugins/` at startup.
 
 ## Development
 
@@ -111,6 +99,12 @@ Run tests:
 
 ```bash
 mise run test
+```
+
+Smoke test the built artifact (build + verify tools load from `dist/index.js`):
+
+```bash
+mise run smoke
 ```
 
 Lint code:

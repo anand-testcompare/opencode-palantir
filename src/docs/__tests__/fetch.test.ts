@@ -58,7 +58,9 @@ describe('Pagefind Fetcher', () => {
     for (const f of tmpFiles) {
       try {
         fs.unlinkSync(f);
-      } catch {}
+      } catch {
+        // ignore cleanup errors
+      }
     }
     tmpFiles.length = 0;
   });

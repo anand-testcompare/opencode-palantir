@@ -11,5 +11,8 @@ coverage/
 .bun.lockb
 .memory/
 data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.parquet
 
 .sisyphus/
