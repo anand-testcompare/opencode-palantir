@@ -9,8 +9,8 @@ async function main() {
     const dataDir = join(process.cwd(), 'data');
     mkdirSync(dataDir, { recursive: true });
 
-    // Resolve DB path
-    const dbPath = join(dataDir, 'docs.db');
+    // Resolve output path
+    const dbPath = join(dataDir, 'docs.parquet');
 
     // Fetch
     const result = await fetchAllDocs(dbPath);

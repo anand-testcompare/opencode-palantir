@@ -1,6 +1,7 @@
 import { gunzipSync } from 'node:zlib';
 import { decode } from 'cborg';
-import { createDatabase, insertPages, closeDatabase, type PageRecord } from './db.ts';
+import { writeParquet } from './write-parquet.ts';
+import type { PageRecord } from './db.ts';
 
 export type { PageRecord };
 
@@ -236,15 +237,7 @@ export async function fetchAllDocs(dbPath: string): Promise<FetchResult> {
     }
   }
 
-  const db = createDatabase(dbPath);
-  try {
-    for (let i = 0; i < fetchedRecords.length; i += BATCH_SIZE) {
-      const batch = fetchedRecords.slice(i, i + BATCH_SIZE);
-      insertPages(db, batch);
-    }
-  } finally {
-    closeDatabase(db);
-  }
+  await writeParquet(fetchedRecords, dbPath);
 
   return {
     totalPages,
