@@ -12,6 +12,9 @@ fi
 
 bun install
 
+mkdir -p node_modules/@opencode-ai
+ln -sf "$(pwd)/.opencode/node_modules/@opencode-ai/plugin" node_modules/@opencode-ai/plugin 2>/dev/null || true
+
 echo ""
 echo "👍 Done"
 echo ""

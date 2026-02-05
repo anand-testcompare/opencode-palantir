@@ -3,4 +3,4 @@
 #MISE sources=["src/**/*"]
 #MISE outputs=["dist/index.js"]
 
-bun build ./src/index.ts --outdir dist --target bun
+bun build ./src/index.ts --outdir dist --target bun --external "@opencode-ai/*"

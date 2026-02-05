@@ -6,6 +6,7 @@
 bun build ./src/index.ts \
   --outdir dist \
   --target bun \
+  --external "@opencode-ai/*" \
   --sourcemap=inline \
   --splitting \
   --entry-naming='[dir]/[name].js' \

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Build and smoke-test the plugin artifact"
+#MISE depends=["build"]
+
+bun run scripts/smoke-test.ts

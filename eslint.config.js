@@ -5,7 +5,7 @@ import eslintPluginPrettier from 'eslint-plugin-prettier';
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'node_modules', '*.config.js'],
+    ignores: ['dist', 'node_modules', '*.config.js', 'scripts', 'validate-parquet.ts'],
   },
   {
     files: ['**/*.ts'],
@@ -24,6 +24,13 @@ export default tseslint.config(
         Buffer: 'readonly',
         // Bun globals
         Bun: 'readonly',
+        // Web API globals (available in Bun)
+        fetch: 'readonly',
+        Response: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
+        setTimeout: 'readonly',
+        URL: 'readonly',
       },
     },
     plugins: {

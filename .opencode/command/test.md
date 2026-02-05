@@ -1,86 +1,42 @@
 ---
-description: Test the Bun Module generator end-to-end
---- 
+description: Test Palantir documentation tools
+---
 
-# Testing the Bun Module Generator
+# Palantir Plugin Tool Test
 
-You are a generator testing coordinator. Use the Task tool to delegate testing phases to specialized subagents. Execute these phases in sequence:
+You are testing the Palantir Foundry documentation tools. Follow these rules strictly:
 
-## Phase 1: Environment Setup & Prerequisites
+## Rules
 
-Use a general subagent to verify the environment is ready:
+1. Use ONLY the `list_all_docs` and `get_doc_page` tools. Do NOT use web search, file reading, or any other tools.
+2. NEVER guess a URL. Always start with `list_all_docs` to discover available pages.
+3. When looking for information, first list all docs, then identify candidate pages by title, then read them one at a time.
+4. If information spans multiple pages, read ALL relevant pages before synthesizing.
 
-**Task:** Verify prerequisites for generator testing
+## Test Sequence
 
-- Check Bash is installed: `bash --version`
-- Check git is configured: `git config user.name` and `git config user.email`
-- Create or use test directory
-- Report environment status
+### Step 1: Verify list_all_docs
 
-## Phase 2: Clone & Run Generator
+Call `list_all_docs`. Confirm it returns a list with 3,000+ pages. Report the exact count.
 
-Use a general subagent to:
+### Step 2: Find and read a specific topic
 
-- Clone template repo
-- Run `./setup.sh` with test inputs:
-  - Module name: `test-module`
-  - Description: `A test module`
-  - Author: `Test User`
-  - Email: `test@example.com`
-  - Repo: `https://github.com/test/test-module`
-  - GitHub org: `test`
+Using ONLY the list from Step 1, find pages related to "Ontology". Identify 3+ candidate pages by their titles. Read each one using `get_doc_page` with the exact URL from the list. Summarize what you learned about Ontology from across these pages.
 
-## Phase 3: Verify Generator Output
+### Step 3: Cross-page information retrieval
 
-Using `task(general)` to validate:
+Using ONLY the list from Step 1, find pages related to "Pipeline Builder" or "Transforms". Read at least 2 pages. Explain how Pipelines relate to the Ontology based ONLY on what the documentation says.
 
-**Files Generated:**
+### Step 4: Edge cases
 
-- `package.json`, `src/index.ts`, `README.md`, `.github/workflows/`
-- All expected template files present
+- Try `get_doc_page` with a URL that does NOT exist (e.g., `/nonexistent/page/`). Confirm it returns a "not found" message.
+- Find a page with a long URL path (3+ segments). Read it successfully.
 
-**Generator Cleanup:**
+### Step 5: Report
 
-- `template/` removed
-- `setup.sh` removed
-- Old `.git/` replaced with fresh repo
+Summarize:
 
-**Git Repository:**
-
-- `.git/` exists and initialized
-- On `main` branch
-- Initial commit exists
-- Remote origin configured
-
-**Template Rendering:**
-
-- `package.json` name matches `test-module` (kebab-case)
-- `description`, `author.name`, `author.email` correctly templated
-- `repository.url` set correctly
-- `README.md` contains module name and author info
-
-**Kebab-Case Conversion:**
-
-- Test with various formats: CamelCase, spaces, underscores, special chars
-- Verify all convert correctly to kebab-case
-
-## Phase 4: Build & Verify Module
-
-Use a general subagent to:
-
-- Run `bun install`
-- Run `mise run build`
-- Run `mise run lint`
-- Run `mise run test`
-- Verify all steps succeed
-
-## Phase 5: Results & Reporting
-
-Compile results from all phases:
-
-- Overall pass/fail status
-- List of any failures or issues
-- Generated module path location
-- Next development steps for the user
-
-Execute all phases in order using the Task tool with appropriate subagent types. Provide the user with a comprehensive test report upon completion.
+- Total pages available
+- Pages successfully read
+- Any failures or unexpected results
+- Whether cross-page information retrieval worked correctly
