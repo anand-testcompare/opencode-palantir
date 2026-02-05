@@ -3,7 +3,7 @@ import { mock } from 'bun:test';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { createDatabase, insertPage, closeDatabase } from '../docs/db.ts';
+import { writeParquet } from '../docs/write-parquet.ts';
 import * as fetchModule from '../docs/fetch.ts';
 
 mock.module('@opencode-ai/plugin/tool', () => {
@@ -27,33 +27,36 @@ describe('Plugin', () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plugin-test-'));
-    dbPath = path.join(tmpDir, 'data', 'docs.db');
+    dbPath = path.join(tmpDir, 'data', 'docs.parquet');
   });
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  function seedDatabase(): void {
+  async function seedDatabase(): Promise<void> {
     fs.mkdirSync(path.join(tmpDir, 'data'), { recursive: true });
-    const db = createDatabase(dbPath);
-    insertPage(db, {
-      url: '/docs/foundry/ontology/overview/',
-      title: 'Ontology Overview',
-      content: 'This is the ontology overview content.',
-      wordCount: 6,
-      meta: {},
-      fetchedAt: '2025-01-01T00:00:00.000Z',
-    });
-    insertPage(db, {
-      url: '/docs/foundry/actions/',
-      title: 'Actions',
-      content: 'Actions documentation content.',
-      wordCount: 3,
-      meta: {},
-      fetchedAt: '2025-01-01T00:00:00.000Z',
-    });
-    closeDatabase(db);
+    await writeParquet(
+      [
+        {
+          url: '/docs/foundry/ontology/overview/',
+          title: 'Ontology Overview',
+          content: 'This is the ontology overview content.',
+          wordCount: 6,
+          meta: {},
+          fetchedAt: '2025-01-01T00:00:00.000Z',
+        },
+        {
+          url: '/docs/foundry/actions/',
+          title: 'Actions',
+          content: 'Actions documentation content.',
+          wordCount: 3,
+          meta: {},
+          fetchedAt: '2025-01-01T00:00:00.000Z',
+        },
+      ],
+      dbPath
+    );
   }
 
   it('returns Hooks with tool property containing exactly 2 tools', async () => {
@@ -85,7 +88,7 @@ describe('Plugin', () => {
   });
 
   it('get_doc_page execute returns page content when DB exists', async () => {
-    seedDatabase();
+    await seedDatabase();
     const hooks = await plugin({ worktree: tmpDir });
 
     const result = await hooks.tool['get_doc_page'].execute(
@@ -97,7 +100,7 @@ describe('Plugin', () => {
   });
 
   it('get_doc_page execute returns not-found message for non-existent URL', async () => {
-    seedDatabase();
+    await seedDatabase();
     const hooks = await plugin({ worktree: tmpDir });
 
     const result = await hooks.tool['get_doc_page'].execute({ url: '/docs/nonexistent/' }, {});
@@ -107,7 +110,7 @@ describe('Plugin', () => {
   });
 
   it('list_all_docs execute returns formatted list of pages', async () => {
-    seedDatabase();
+    await seedDatabase();
     const hooks = await plugin({ worktree: tmpDir });
 
     const result = await hooks.tool['list_all_docs'].execute({}, {});
@@ -170,7 +173,7 @@ describe('Plugin', () => {
   });
 
   it('lazily opens database only on first tool call', async () => {
-    seedDatabase();
+    await seedDatabase();
     const hooks = await plugin({ worktree: tmpDir });
 
     // DB not opened yet — get_doc_page works, proving lazy init

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { gzipSync } from 'node:zlib';
+import fs from 'node:fs';
 import { encode } from 'cborg';
 import {
   PAGEFIND_BASE,
@@ -43,10 +44,23 @@ function setMockFetch(mock: ReturnType<typeof vi.fn>): void {
 
 describe('Pagefind Fetcher', () => {
   const originalFetch = globalThis.fetch;
+  const tmpFiles: string[] = [];
+
+  function tmpParquetPath(): string {
+    const p = `/tmp/test-fetch-${Date.now()}-${Math.random().toString(36).slice(2)}.parquet`;
+    tmpFiles.push(p);
+    return p;
+  }
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
     vi.restoreAllMocks();
+    for (const f of tmpFiles) {
+      try {
+        fs.unlinkSync(f);
+      } catch {}
+    }
+    tmpFiles.length = 0;
   });
 
   describe('constants', () => {
@@ -213,7 +227,7 @@ describe('Pagefind Fetcher', () => {
       );
 
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      await fetchAllDocs(':memory:');
+      await fetchAllDocs(tmpParquetPath());
       consoleSpy.mockRestore();
 
       expect(maxConcurrent).toBeLessThanOrEqual(DEFAULT_CONCURRENCY);
@@ -313,8 +327,9 @@ describe('Pagefind Fetcher', () => {
         })
       );
 
+      const outPath = tmpParquetPath();
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const result = await fetchAllDocs(':memory:');
+      const result = await fetchAllDocs(outPath);
       consoleSpy.mockRestore();
 
       expect(result.totalPages).toBe(3);
@@ -373,14 +388,15 @@ describe('Pagefind Fetcher', () => {
         })
       );
 
+      const outPath = tmpParquetPath();
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const result = await fetchAllDocs(':memory:');
+      const result = await fetchAllDocs(outPath);
       consoleSpy.mockRestore();
 
       expect(result.totalPages).toBe(2);
       expect(result.fetchedPages).toBe(2);
       expect(result.failedUrls).toHaveLength(0);
-      expect(result.dbPath).toBe(':memory:');
+      expect(result.dbPath).toBe(outPath);
     });
   });
 });
