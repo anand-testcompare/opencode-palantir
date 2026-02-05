@@ -1,20 +1,25 @@
 import type { Plugin } from '@opencode-ai/plugin';
 import { tool } from '@opencode-ai/plugin/tool';
 import path from 'node:path';
-import { createDatabase, getPage, getAllPages, closeDatabase } from './docs/db.ts';
+import {
+  createDatabase,
+  getPage,
+  getAllPages,
+  closeDatabase,
+  type ParquetStore,
+} from './docs/db.ts';
 import { fetchAllDocs } from './docs/fetch.ts';
-import type { Database } from 'bun:sqlite';
 
 const NO_DB_MESSAGE =
   'Documentation database not found. Run /refresh-docs to download Palantir Foundry documentation.';
 
 const plugin: Plugin = async (input) => {
-  const dbPath = path.join(input.worktree, 'data', 'docs.db');
-  let dbInstance: Database | null = null;
+  const dbPath = path.join(input.worktree, 'data', 'docs.parquet');
+  let dbInstance: ParquetStore | null = null;
 
-  function getDb(): Database {
+  async function getDb(): Promise<ParquetStore> {
     if (!dbInstance) {
-      dbInstance = createDatabase(dbPath);
+      dbInstance = await createDatabase(dbPath);
     }
     return dbInstance;
   }
@@ -36,8 +41,8 @@ const plugin: Plugin = async (input) => {
         async execute(args) {
           if (!(await dbExists())) return NO_DB_MESSAGE;
 
-          const db = getDb();
-          const page = getPage(db, args.url);
+          const db = await getDb();
+          const page = await getPage(db, args.url);
           if (!page) return `Page not found: ${args.url}`;
 
           return page.content;
@@ -51,7 +56,7 @@ const plugin: Plugin = async (input) => {
         async execute() {
           if (!(await dbExists())) return NO_DB_MESSAGE;
 
-          const db = getDb();
+          const db = await getDb();
           const pages = getAllPages(db);
           const lines = pages.map((p) => `- ${p.title} (${p.url})`);
           return `Available Palantir Foundry Documentation (${pages.length} pages):\n\n${lines.join('\n')}`;
