@@ -96,5 +96,6 @@ export function getAllPages(db: Database): PageListing[] {
 }
 
 export function closeDatabase(db: Database): void {
+  db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
   db.close();
 }
