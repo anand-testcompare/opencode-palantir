@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 #MISE description="Watch mode for development with sourcemaps and vendor splitting"
-#MISE watch=["src/**/*"]
 
 bun build ./src/index.ts \
   --outdir dist \
