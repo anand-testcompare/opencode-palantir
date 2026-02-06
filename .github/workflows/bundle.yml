@@ -1,0 +1,49 @@
+name: Bundle Plugin (with data)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Tooling
+        uses: jdx/mise-action@d6e32c1796099e0f1f3ac741c220a8b7eae9e5dd
+        with:
+          install: true
+          cache: true
+          experimental: true
+
+      - name: Build
+        run: |
+          mise run setup
+          mise run test
+          mise run build
+
+      - name: Create bundle
+        run: |
+          mkdir -p bundle
+          cp -R dist bundle/dist
+
+          if [ -f data/docs.parquet ]; then
+            mkdir -p bundle/data
+            cp data/docs.parquet bundle/data/docs.parquet
+          fi
+
+          cp package.json bundle/package.json
+          cp README.md bundle/README.md
+
+          tar -czf opencode-palantir-bundle.tgz -C bundle .
+
+      - name: Upload bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencode-palantir-bundle
+          if-no-files-found: error
+          path: opencode-palantir-bundle.tgz

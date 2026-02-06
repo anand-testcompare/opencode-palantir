@@ -41,6 +41,7 @@ if [ -n "${usage_otp}" ]; then
 fi
 
 # if not usage_dry_run and is in github action, add provenance flag to args.
+# NOTE: npm provenance requires Trusted Publishing (OIDC).
 if [ -n "${GITHUB_ACTIONS}" ]; then
 	args+=("--provenance")
 	echo " > adding provenance flag for CI publish"

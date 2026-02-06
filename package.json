@@ -1,12 +1,15 @@
 {
-  "name": "palantir-opencode-plugin",
+  "name": "@openontology/opencode-palantir",
   "version": "0.1.0",
   "description": "collection of tools, agents, hooks to supercharge development in foundry",
+  "license": "MIT",
   "author": {
     "name": "Anand Pant",
     "email": "anand@shpit.dev"
   },
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -15,18 +18,21 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:anand-testcompare/palantir-opencode-plugin.git"
+    "url": "git+https://github.com/anand-testcompare/opencode-palantir.git"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
   "files": [
-    "dist",
-    "src/version.ts",
-    "data"
+    "dist"
   ],
+  "private": false,
+  "peerDependencies": {
+    "@opencode-ai/plugin": "^1.1.51"
+  },
   "devDependencies": {
+    "@opencode-ai/plugin": "1.1.51",
     "@eslint/js": "^9.39.1",
     "@types/node": "^20.11.5",
     "@typescript-eslint/eslint-plugin": "8.47.0",

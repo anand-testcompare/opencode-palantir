@@ -4,6 +4,8 @@ description: Test Palantir documentation tools
 
 # Palantir Plugin Tool Test
 
+(Plugin package: `@openontology/opencode-palantir`)
+
 You are testing the Palantir Foundry documentation tools. Follow these rules strictly:
 
 ## Rules

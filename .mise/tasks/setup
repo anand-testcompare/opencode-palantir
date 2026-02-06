@@ -12,8 +12,11 @@ fi
 
 bun install
 
-mkdir -p node_modules/@opencode-ai
-ln -sf "$(pwd)/.opencode/node_modules/@opencode-ai/plugin" node_modules/@opencode-ai/plugin 2>/dev/null || true
+OPENCODE_PLUGIN_PATH="$(pwd)/.opencode/node_modules/@opencode-ai/plugin"
+if [ -d "${OPENCODE_PLUGIN_PATH}" ]; then
+	mkdir -p node_modules/@opencode-ai
+	ln -sf "${OPENCODE_PLUGIN_PATH}" node_modules/@opencode-ai/plugin
+fi
 
 echo ""
 echo "👍 Done"

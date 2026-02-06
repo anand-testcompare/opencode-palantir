@@ -1,4 +1,4 @@
-# palantir-opencode-plugin
+# opencode-palantir
 
 OpenCode plugin that provides Palantir Foundry documentation to AI agents via local Parquet storage.
 
@@ -75,14 +75,18 @@ When installed as an OpenCode plugin, exposes:
 
 ### Installing in OpenCode (this project only)
 
-Symlink the built artifact into the project-level auto-discovered plugins directory:
+Create a tiny wrapper plugin file that re-exports the built artifact into the project-level auto-discovered plugins directory:
 
 ```bash
 mkdir -p .opencode/plugins
 ```
 
 ```bash
-ln -s ../../dist/index.js .opencode/plugins/palantir.js
+cat > .opencode/plugins/opencode-palantir.js <<'EOF'
+import plugin from '../../dist/index.js';
+
+export default plugin;
+EOF
 ```
 
 OpenCode automatically loads any `.js`/`.ts` files in `.opencode/plugins/` at startup.
