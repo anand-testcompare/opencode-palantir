@@ -11,7 +11,6 @@ import {
   patchConfigForSetup,
   readLegacyOpencodeJson,
   readOpencodeJsonc,
-  readProfileOverride,
   renameLegacyToBak,
   stringifyJsonc,
   writeFileAtomic,
@@ -48,30 +47,17 @@ function formatPatchSummary(patch: PatchResult): string {
   return lines.join('\n');
 }
 
-async function resolveProfile(
-  worktree: string,
-  baseConfig: Record<string, unknown>
-): Promise<{
+async function resolveProfile(worktree: string): Promise<{
   profile: ProfileId;
   reasons: string[];
-  usedOverride: boolean;
 }> {
-  const override: ProfileId | null = readProfileOverride(baseConfig);
-  if (override)
-    return {
-      profile: override,
-      reasons: ['Using palantir_mcp.profile override'],
-      usedOverride: true,
-    };
-
   try {
     const scan = await scanRepoForProfile(worktree);
-    return { profile: scan.profile, reasons: scan.reasons, usedOverride: false };
+    return { profile: scan.profile, reasons: scan.reasons };
   } catch (err) {
     return {
       profile: 'unknown',
       reasons: [`Repo scan failed; falling back to unknown: ${formatError(err)}`],
-      usedOverride: false,
     };
   }
 }
@@ -116,7 +102,7 @@ export async function setupPalantirMcp(worktree: string, rawArgs: string): Promi
   const existingMcpUrlRaw: string | null = extractFoundryApiUrlFromMcpConfig(merged);
   const existingMcpUrlNorm = existingMcpUrlRaw ? normalizeFoundryBaseUrl(existingMcpUrlRaw) : null;
 
-  const { profile } = await resolveProfile(worktree, merged);
+  const { profile } = await resolveProfile(worktree);
   const discoveryUrl: string =
     existingMcpUrlNorm && 'url' in existingMcpUrlNorm ? existingMcpUrlNorm.url : normalized.url;
   let toolNames: string[];
@@ -208,7 +194,7 @@ export async function rescanPalantirMcpTools(worktree: string): Promise<string> 
   const normalized = normalizeFoundryBaseUrl(foundryUrlRaw);
   if ('error' in normalized) return `[ERROR] Invalid Foundry URL in config: ${normalized.error}`;
 
-  const { profile } = await resolveProfile(worktree, baseData);
+  const { profile } = await resolveProfile(worktree);
   let toolNames: string[];
   try {
     toolNames = await listPalantirMcpTools(normalized.url);
