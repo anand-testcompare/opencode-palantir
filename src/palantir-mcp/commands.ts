@@ -117,11 +117,13 @@ export async function setupPalantirMcp(worktree: string, rawArgs: string): Promi
   const existingMcpUrlNorm = existingMcpUrlRaw ? normalizeFoundryBaseUrl(existingMcpUrlRaw) : null;
 
   const { profile } = await resolveProfile(worktree, merged);
+  const discoveryUrl: string =
+    existingMcpUrlNorm && 'url' in existingMcpUrlNorm ? existingMcpUrlNorm.url : normalized.url;
   let toolNames: string[];
   try {
-    toolNames = await listPalantirMcpTools(normalized.url);
+    toolNames = await listPalantirMcpTools(discoveryUrl);
   } catch (err) {
-    return formatError(err);
+    return `[ERROR] ${formatError(err)}`;
   }
   if (toolNames.length === 0) return '[ERROR] palantir-mcp tool discovery returned no tools.';
 
@@ -211,7 +213,7 @@ export async function rescanPalantirMcpTools(worktree: string): Promise<string> 
   try {
     toolNames = await listPalantirMcpTools(normalized.url);
   } catch (err) {
-    return formatError(err);
+    return `[ERROR] ${formatError(err)}`;
   }
   if (toolNames.length === 0) return '[ERROR] palantir-mcp tool discovery returned no tools.';
 

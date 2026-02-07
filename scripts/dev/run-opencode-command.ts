@@ -38,7 +38,13 @@ async function tryReadDotEnvValue(envPath: string, key: string): Promise<string 
     if (!trimmed.startsWith(`${key}=`)) continue;
 
     const raw: string = trimmed.slice(key.length + 1);
-    const val: string = raw.trim();
+    let val: string = raw.trim();
+    if (
+      val.length >= 2 &&
+      ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))
+    ) {
+      val = val.slice(1, -1);
+    }
     if (!val) return null;
     return val;
   }
