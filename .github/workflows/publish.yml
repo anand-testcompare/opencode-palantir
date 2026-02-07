@@ -97,4 +97,79 @@ jobs:
             sleep 3
           done
 
-          echo "✓ npm publish verification passed"
+            # Extra sanity checks: confirm the publish has provenance attached and looks like an OIDC publish.
+            # These are best-effort signals (npm UI can lag), but they help catch accidental token-based publishes.
+            EXPECTED_OIDC_EMAIL="npm-oidc-no-reply@github.com"
+            NPM_USER_EMAIL=""
+            NPM_USER_NAME=""
+            for i in $(seq 1 20); do
+              VIEW_JSON="$(npm view "${NAME}@${VERSION}" --json 2>/dev/null || true)"
+
+              NPM_USER_EMAIL="$(
+                printf '%s' "$VIEW_JSON" | node -e '
+                  const fs = require("fs");
+                  const s = fs.readFileSync(0, "utf8").trim();
+                  if (!s) process.exit(0);
+                  try {
+                    const j = JSON.parse(s);
+                    const u = j._npmUser ?? j.dist?._npmUser ?? null;
+                    if (u && typeof u === "object" && u.email) process.stdout.write(String(u.email));
+                  } catch {}
+                '
+              )"
+              NPM_USER_NAME="$(
+                printf '%s' "$VIEW_JSON" | node -e '
+                  const fs = require("fs");
+                  const s = fs.readFileSync(0, "utf8").trim();
+                  if (!s) process.exit(0);
+                  try {
+                    const j = JSON.parse(s);
+                    const u = j._npmUser ?? j.dist?._npmUser ?? null;
+                    if (u && typeof u === "object" && u.name) process.stdout.write(String(u.name));
+                  } catch {}
+                '
+              )"
+
+              if [ "$NPM_USER_EMAIL" = "$EXPECTED_OIDC_EMAIL" ] || [ "$NPM_USER_NAME" = "$EXPECTED_OIDC_EMAIL" ]; then
+                break
+              fi
+
+              if [ "$i" -eq 20 ]; then
+                echo "[ERROR] expected OIDC publish; npm reports _npmUser.email='${NPM_USER_EMAIL:-<empty>}' _npmUser.name='${NPM_USER_NAME:-<empty>}'"
+                exit 1
+              fi
+
+              echo "Waiting for npm _npmUser to show OIDC publisher (${i}/20)..."
+              sleep 3
+            done
+
+            PREDICATE_TYPE=""
+            for i in $(seq 1 20); do
+              VIEW_JSON="$(npm view "${NAME}@${VERSION}" --json 2>/dev/null || true)"
+              PREDICATE_TYPE="$(
+                printf '%s' "$VIEW_JSON" | node -e '
+                  const fs = require("fs");
+                  const s = fs.readFileSync(0, "utf8").trim();
+                  if (!s) process.exit(0);
+                  try {
+                    const j = JSON.parse(s);
+                    const p = j.dist?.attestations?.provenance?.predicateType ?? "";
+                    if (p) process.stdout.write(String(p));
+                  } catch {}
+                '
+              )"
+
+              if [ "$PREDICATE_TYPE" = "https://slsa.dev/provenance/v1" ]; then
+                break
+              fi
+
+              if [ "$i" -eq 20 ]; then
+                echo "[ERROR] missing/incorrect provenance attestation predicateType: '${PREDICATE_TYPE:-<empty>}'"
+                exit 1
+              fi
+
+              echo "Waiting for provenance attestation predicateType (${i}/20)..."
+              sleep 3
+            done
+
+            echo "✓ npm publish verification passed"
