@@ -2,14 +2,9 @@ import plugin from '../dist/index.js';
 
 const worktree = import.meta.dirname + '/..';
 
-const hooks = await plugin({
-  worktree,
-  directory: worktree,
-  project: { root: worktree },
-  serverUrl: new URL('http://localhost'),
-  client: {} as never,
-  $: {} as never,
-});
+// This script runs outside OpenCode; only `worktree` is required by this plugin.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const hooks = await plugin({ worktree } as any);
 
 const errors: string[] = [];
 

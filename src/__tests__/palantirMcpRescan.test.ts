@@ -1,0 +1,134 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { mock } from 'bun:test';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+
+import * as mcpClient from '../palantir-mcp/mcp-client.ts';
+
+type MinimalHooks = Record<string, unknown>;
+type MinimalPlugin = (input: { worktree: string }) => Promise<MinimalHooks>;
+type CommandHookInput = { command: string; sessionID: string; arguments: string };
+type CommandHookOutput = { parts: unknown[] };
+type CommandHook = (input: CommandHookInput, output: CommandHookOutput) => Promise<void>;
+
+type OpencodeConfig = {
+  agent?: Record<string, { tools?: Record<string, unknown> }>;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getFirstTextPart(output: CommandHookOutput): string {
+  expect(output.parts).toHaveLength(1);
+  const part: unknown = output.parts[0];
+  if (!isRecord(part)) throw new Error('Expected output part to be an object');
+  if (part.type !== 'text') throw new Error(`Expected text part, got ${String(part.type)}`);
+  if (typeof part.text !== 'string') throw new Error('Expected text to be a string');
+  return part.text;
+}
+
+mock.module('@opencode-ai/plugin/tool', () => {
+  const mockSchema = {
+    string: () => ({
+      describe: (d: string) => ({ _type: 'string', _description: d }),
+    }),
+  };
+  const toolFn = Object.assign((input: Record<string, unknown>) => input, {
+    schema: mockSchema,
+  });
+  return { tool: toolFn };
+});
+
+const plugin = (await import('../index.ts')).default as unknown as MinimalPlugin;
+
+describe('/rescan-palantir-mcp-tools', () => {
+  let tmpDir: string;
+  let priorToken: string | undefined;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plugin-rescan-test-'));
+    priorToken = process.env.FOUNDRY_TOKEN;
+    process.env.FOUNDRY_TOKEN = 'TEST_TOKEN';
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+    if (priorToken === undefined) delete process.env.FOUNDRY_TOKEN;
+    else process.env.FOUNDRY_TOKEN = priorToken;
+  });
+
+  async function runRescan(): Promise<{ text: string }> {
+    const hooks = await plugin({ worktree: tmpDir });
+    const hook = hooks['command.execute.before'];
+    if (typeof hook !== 'function') throw new Error('Missing command.execute.before hook');
+
+    const output: CommandHookOutput = { parts: [] };
+    await (hook as CommandHook)(
+      { command: 'rescan-palantir-mcp-tools', sessionID: 'test-session', arguments: '' },
+      output
+    );
+    return { text: getFirstTextPart(output) };
+  }
+
+  it('errors if opencode.jsonc is missing', async () => {
+    const spy = vi.spyOn(mcpClient, 'listPalantirMcpTools');
+    const result = await runRescan();
+
+    expect(result.text).toContain('Missing opencode.jsonc');
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('preserves existing palantir-mcp_* toggles and adds missing ones', async () => {
+    vi.spyOn(mcpClient, 'listPalantirMcpTools').mockResolvedValue(['list_datasets', 'get_dataset']);
+
+    const cfgPath = path.join(tmpDir, 'opencode.jsonc');
+    const seeded = {
+      mcp: {
+        'palantir-mcp': {
+          type: 'local',
+          command: [
+            'npx',
+            '-y',
+            'palantir-mcp',
+            '--foundry-api-url',
+            'https://example.palantirfoundry.com',
+          ],
+          environment: { FOUNDRY_TOKEN: '{env:FOUNDRY_TOKEN}' },
+        },
+      },
+      tools: { 'palantir-mcp_*': false },
+      agent: {
+        foundry: {
+          tools: {
+            'palantir-mcp_list_datasets': false,
+          },
+        },
+      },
+    };
+    fs.writeFileSync(cfgPath, JSON.stringify(seeded, null, 2));
+
+    const result = await runRescan();
+    expect(result.text).toContain('preserved');
+
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8')) as OpencodeConfig;
+    expect(cfg.agent?.foundry?.tools?.['palantir-mcp_list_datasets']).toBe(false);
+    expect(cfg.agent?.foundry?.tools?.['palantir-mcp_get_dataset']).toBe(true);
+  });
+
+  it('fails safely on invalid jsonc', async () => {
+    vi.spyOn(mcpClient, 'listPalantirMcpTools').mockResolvedValue(['list_datasets']);
+
+    const cfgPath = path.join(tmpDir, 'opencode.jsonc');
+    fs.writeFileSync(cfgPath, '{ invalid jsonc');
+
+    const before = fs.readFileSync(cfgPath, 'utf8');
+    const result = await runRescan();
+    const after = fs.readFileSync(cfgPath, 'utf8');
+
+    expect(result.text).toContain('Failed parsing opencode.jsonc');
+    expect(after).toBe(before);
+  });
+});

@@ -9,6 +9,7 @@ import {
   type ParquetStore,
 } from './docs/db.ts';
 import { fetchAllDocs } from './docs/fetch.ts';
+import { rescanPalantirMcpTools, setupPalantirMcp } from './palantir-mcp/commands.ts';
 
 const NO_DB_MESSAGE =
   'Documentation database not found. Run /refresh-docs to download Palantir Foundry documentation.';
@@ -16,6 +17,8 @@ const NO_DB_MESSAGE =
 const plugin: Plugin = async (input) => {
   const dbPath = path.join(input.worktree, 'data', 'docs.parquet');
   let dbInstance: ParquetStore | null = null;
+
+  type CommandOutput = { parts: unknown[] };
 
   async function getDb(): Promise<ParquetStore> {
     if (!dbInstance) {
@@ -26,6 +29,10 @@ const plugin: Plugin = async (input) => {
 
   async function dbExists(): Promise<boolean> {
     return Bun.file(dbPath).exists();
+  }
+
+  function pushText(output: CommandOutput, text: string): void {
+    output.parts.push({ type: 'text', text });
   }
 
   return {
@@ -65,20 +72,32 @@ const plugin: Plugin = async (input) => {
     },
 
     'command.execute.before': async (hookInput, output) => {
-      if (hookInput.command !== 'refresh-docs') return;
+      if (hookInput.command === 'refresh-docs') {
+        const result = await fetchAllDocs(dbPath);
 
-      const result = await fetchAllDocs(dbPath);
+        if (dbInstance) {
+          closeDatabase(dbInstance);
+          dbInstance = null;
+        }
 
-      if (dbInstance) {
-        closeDatabase(dbInstance);
-        dbInstance = null;
+        pushText(
+          output,
+          `Refreshed documentation: ${result.fetchedPages}/${result.totalPages} pages fetched. ${result.failedUrls.length} failures.`
+        );
+        return;
       }
 
-      output.parts.push({
-        type: 'text',
-        text: `Refreshed documentation: ${result.fetchedPages}/${result.totalPages} pages fetched. ${result.failedUrls.length} failures.`,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+      if (hookInput.command === 'setup-palantir-mcp') {
+        const text = await setupPalantirMcp(input.worktree, hookInput.arguments ?? '');
+        pushText(output, text);
+        return;
+      }
+
+      if (hookInput.command === 'rescan-palantir-mcp-tools') {
+        const text = await rescanPalantirMcpTools(input.worktree);
+        pushText(output, text);
+        return;
+      }
     },
   };
 };

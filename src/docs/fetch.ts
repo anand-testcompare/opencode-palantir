@@ -62,8 +62,7 @@ function computeDelay(attempt: number): number {
   return base * jitter;
 }
 
-// eslint-disable-next-line no-unused-vars
-async function fetchWithRetry(url: string, _options?: { parseJson?: boolean }): Promise<Response> {
+async function fetchWithRetry(url: string): Promise<Response> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {

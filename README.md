@@ -89,6 +89,25 @@ When installed, this plugin exposes:
 
 If `data/docs.parquet` is missing, both tools will instruct you to run `/refresh-docs`.
 
+## Foundry MCP setup helpers
+
+This plugin also provides two OpenCode commands to set up `palantir-mcp` with project-scoped tool
+gating and Foundry sub-agents:
+
+- **`/setup-palantir-mcp <foundry_api_url>`**
+  - Creates/patches repo-root `opencode.jsonc`
+  - Adds `mcp.palantir-mcp` (if missing) as a local `npx palantir-mcp --foundry-api-url ...` server
+  - Enforces global deny: `tools.palantir-mcp_* = false`
+  - Creates `foundry-librarian` and `foundry` agents
+  - Dynamically discovers the current `palantir-mcp` tool list and writes explicit `true/false`
+    per-tool toggles under each Foundry agent
+- **`/rescan-palantir-mcp-tools`**
+  - Re-discovers the `palantir-mcp` tool list and adds any missing explicit toggles
+  - Never overwrites existing `palantir-mcp_*` toggles
+
+Auth is always env-only. The token is referenced as `{env:FOUNDRY_TOKEN}` and is never written to
+disk.
+
 ## Setup (this repo)
 
 ```bash
