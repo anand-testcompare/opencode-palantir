@@ -48,6 +48,7 @@
   },
   "dependencies": {
     "cborg": "^4.5.8",
-    "hyparquet": "^1.24.1"
+    "hyparquet": "^1.24.1",
+    "jsonc-parser": "^3.3.1"
   }
 }
