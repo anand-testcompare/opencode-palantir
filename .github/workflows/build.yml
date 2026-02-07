@@ -22,6 +22,9 @@ jobs:
           install: true
           cache: true
           experimental: true
+        env:
+          # Required for aqua-backed tool installs to avoid GitHub API rate limits in CI.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
         run: |
