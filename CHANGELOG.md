@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/anand-testcompare/opencode-palantir/compare/v0.1.2...v0.1.3) (2026-02-08)
+
+
+### Bug Fixes
+
+* stop writing unsupported palantir_mcp key ([bd7401b](https://github.com/anand-testcompare/opencode-palantir/commit/bd7401b8eca658ae29628fbd7711b7d7dc235408))
+* stop writing unsupported palantir_mcp key to opencode.jsonc ([cea36ed](https://github.com/anand-testcompare/opencode-palantir/commit/cea36edc65e74c14b497c735a7ef042ce1f18122))
+
 ## [0.1.2](https://github.com/anand-testcompare/opencode-palantir/compare/v0.1.1...v0.1.2) (2026-02-07)
 
 
