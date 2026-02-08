@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mock } from 'bun:test';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -28,18 +27,6 @@ function getFirstTextPart(output: CommandHookOutput): string {
   if (typeof part.text !== 'string') throw new Error('Expected text to be a string');
   return part.text;
 }
-
-mock.module('@opencode-ai/plugin/tool', () => {
-  const mockSchema = {
-    string: () => ({
-      describe: (d: string) => ({ _type: 'string', _description: d }),
-    }),
-  };
-  const toolFn = Object.assign((input: Record<string, unknown>) => input, {
-    schema: mockSchema,
-  });
-  return { tool: toolFn };
-});
 
 const plugin = (await import('../index.ts')).default as unknown as MinimalPlugin;
 

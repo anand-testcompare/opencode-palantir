@@ -1,22 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mock } from 'bun:test';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { writeParquet } from '../docs/write-parquet.ts';
 import * as fetchModule from '../docs/fetch.ts';
-
-mock.module('@opencode-ai/plugin/tool', () => {
-  const mockSchema = {
-    string: () => ({
-      describe: (d: string) => ({ _type: 'string', _description: d }),
-    }),
-  };
-  const toolFn = Object.assign((input: Record<string, unknown>) => input, {
-    schema: mockSchema,
-  });
-  return { tool: toolFn };
-});
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const plugin = (await import('../index.ts')).default as any;
@@ -59,6 +46,58 @@ describe('Plugin', () => {
     );
   }
 
+  async function seedDatabaseMany(): Promise<void> {
+    fs.mkdirSync(path.join(tmpDir, 'data'), { recursive: true });
+
+    const rows: Array<{
+      url: string;
+      title: string;
+      content: string;
+      wordCount: number;
+      meta: Record<string, unknown>;
+      fetchedAt: string;
+    }> = [];
+
+    // Intentionally unsorted URL insertion to prove deterministic ordering.
+    rows.push({
+      url: '/docs/apollo/zzz/',
+      title: 'Apollo ZZZ',
+      content: 'apollo content',
+      wordCount: 2,
+      meta: {},
+      fetchedAt: '2025-01-01T00:00:00.000Z',
+    });
+    rows.push({
+      url: '/docs/foundry/zzz/',
+      title: 'Foundry ZZZ',
+      content: 'foundry content',
+      wordCount: 2,
+      meta: {},
+      fetchedAt: '2025-01-01T00:00:00.000Z',
+    });
+    rows.push({
+      url: '/docs/gotham/aaa/',
+      title: 'Gotham AAA',
+      content: 'gotham content',
+      wordCount: 2,
+      meta: {},
+      fetchedAt: '2025-01-01T00:00:00.000Z',
+    });
+
+    for (let i = 0; i < 60; i += 1) {
+      rows.push({
+        url: `/docs/foundry/many/${String(i).padStart(2, '0')}/`,
+        title: `Foundry Many ${i}`,
+        content: 'foundry many content',
+        wordCount: 3,
+        meta: {},
+        fetchedAt: '2025-01-01T00:00:00.000Z',
+      });
+    }
+
+    await writeParquet(rows, dbPath);
+  }
+
   it('returns Hooks with tool property containing exactly 2 tools', async () => {
     const hooks = await plugin({ worktree: tmpDir });
 
@@ -84,7 +123,8 @@ describe('Plugin', () => {
 
     expect(listAllDocs.description).toBeTruthy();
     expect(listAllDocs.description).toContain('documentation');
-    expect(Object.keys(listAllDocs.args)).toHaveLength(0);
+    const keys = Object.keys(listAllDocs.args).sort((a, b) => a.localeCompare(b));
+    expect(keys).toEqual(['limit', 'offset', 'scope']);
   });
 
   it('get_doc_page execute returns page content when DB exists', async () => {
@@ -115,9 +155,86 @@ describe('Plugin', () => {
 
     const result = await hooks.tool['list_all_docs'].execute({}, {});
 
-    expect(result).toContain('Available Palantir Foundry Documentation (2 pages)');
+    expect(result).toContain('Available Palantir Documentation Pages');
+    expect(result).toContain('scope=foundry');
+    expect(result).toContain('total=2');
     expect(result).toContain('- Ontology Overview (/docs/foundry/ontology/overview/)');
     expect(result).toContain('- Actions (/docs/foundry/actions/)');
+  });
+
+  it('list_all_docs defaults to bounded results and foundry scope', async () => {
+    await seedDatabaseMany();
+    const hooks = await plugin({ worktree: tmpDir });
+
+    const result = await hooks.tool['list_all_docs'].execute({}, {});
+
+    expect(result).toContain('scope=foundry');
+    expect(result).toContain('limit=50');
+    expect(result).toContain('Next: call list_all_docs');
+    expect(result).not.toContain('/docs/apollo/');
+    expect(result).not.toContain('/docs/gotham/');
+
+    const lineCount = result.split('\n').filter((l) => l.startsWith('- ')).length;
+    expect(lineCount).toBeLessThanOrEqual(50);
+  });
+
+  it('list_all_docs pagination is deterministic (sorted by url)', async () => {
+    await seedDatabaseMany();
+    const hooks = await plugin({ worktree: tmpDir });
+
+    const first = await hooks.tool['list_all_docs'].execute(
+      { scope: 'all', limit: 1, offset: 0 },
+      {}
+    );
+    const second = await hooks.tool['list_all_docs'].execute(
+      { scope: 'all', limit: 1, offset: 1 },
+      {}
+    );
+
+    const getOnlyUrl = (text: string): string => {
+      const line = text.split('\n').find((l) => l.startsWith('- ') && l.includes('(/docs/'));
+      expect(line).toBeTruthy();
+      const match = line?.match(/\((\/docs\/[^)]+)\)/);
+      expect(match?.[1]).toBeTruthy();
+      return match?.[1] as string;
+    };
+
+    const url0 = getOnlyUrl(first);
+    const url1 = getOnlyUrl(second);
+    expect(url0).not.toBe(url1);
+
+    // Because ordering is by URL, /docs/apollo/... sorts before /docs/foundry/... and /docs/gotham/...
+    expect(url0).toBe('/docs/apollo/zzz/');
+    expect(url1).toBe('/docs/foundry/many/00/');
+  });
+
+  it('list_all_docs scope=all includes non-foundry URLs', async () => {
+    await seedDatabaseMany();
+    const hooks = await plugin({ worktree: tmpDir });
+
+    const result = await hooks.tool['list_all_docs'].execute(
+      { scope: 'all', limit: 5, offset: 0 },
+      {}
+    );
+
+    expect(result).toContain('scope=all');
+    expect(result).toContain('/docs/apollo/zzz/');
+  });
+
+  it('list_all_docs invalid args fail safely', async () => {
+    await seedDatabaseMany();
+    const hooks = await plugin({ worktree: tmpDir });
+
+    const badLimit = await hooks.tool['list_all_docs'].execute({ limit: 0 } as never, {});
+    expect(badLimit).toContain('[ERROR]');
+    expect(badLimit).toContain('limit');
+
+    const badOffset = await hooks.tool['list_all_docs'].execute({ offset: -1 } as never, {});
+    expect(badOffset).toContain('[ERROR]');
+    expect(badOffset).toContain('offset');
+
+    const badScope = await hooks.tool['list_all_docs'].execute({ scope: 'nope' } as never, {});
+    expect(badScope).toContain('[ERROR]');
   });
 
   it('tools return helpful message when docs.db does not exist', async () => {
@@ -185,6 +302,6 @@ describe('Plugin', () => {
 
     // Second call reuses cached DB — list_all_docs also works
     const listResult = await hooks.tool['list_all_docs'].execute({}, {});
-    expect(listResult).toContain('2 pages');
+    expect(listResult).toContain('total=2');
   });
 });
