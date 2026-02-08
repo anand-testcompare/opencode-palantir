@@ -49,6 +49,13 @@ fi
 
 # Publish directly from source (allows provenance generation in CI)
 if [ "${usage_dry_run}" != "true" ]; then
+	NAME="$(node -p 'require("./package.json").name')"
+	VERSION="$(node -p 'require("./package.json").version')"
+	if npm view "${NAME}@${VERSION}" version >/dev/null 2>&1; then
+		echo " > ${NAME}@${VERSION} already exists on npm; skipping publish"
+		exit 0
+	fi
+
 	npm publish \
 		--access public \
 		--tag "${usage_tag}" \

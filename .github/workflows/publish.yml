@@ -102,9 +102,24 @@ jobs:
             EXPECTED_OIDC_EMAIL="npm-oidc-no-reply@github.com"
             NPM_USER_EMAIL=""
             NPM_USER_NAME=""
+            NPM_USER_RAW=""
             for i in $(seq 1 20); do
               VIEW_JSON="$(npm view "${NAME}@${VERSION}" --json 2>/dev/null || true)"
 
+              NPM_USER_RAW="$(
+                printf '%s' "$VIEW_JSON" | node -e '
+                  const fs = require("fs");
+                  const s = fs.readFileSync(0, "utf8").trim();
+                  if (!s) process.exit(0);
+                  try {
+                    const j = JSON.parse(s);
+                    const u = j._npmUser ?? j.dist?._npmUser ?? null;
+                    if (u == null) process.exit(0);
+                    if (typeof u === "string") process.stdout.write(u);
+                    else if (typeof u === "object" && typeof u.name === "string") process.stdout.write(u.name);
+                  } catch {}
+                '
+              )"
               NPM_USER_EMAIL="$(
                 printf '%s' "$VIEW_JSON" | node -e '
                   const fs = require("fs");
@@ -113,7 +128,12 @@ jobs:
                   try {
                     const j = JSON.parse(s);
                     const u = j._npmUser ?? j.dist?._npmUser ?? null;
-                    if (u && typeof u === "object" && u.email) process.stdout.write(String(u.email));
+                    if (typeof u === "string") {
+                      const m = u.match(/<([^>]+)>/);
+                      if (m) process.stdout.write(String(m[1]));
+                    } else if (u && typeof u === "object" && u.email) {
+                      process.stdout.write(String(u.email));
+                    }
                   } catch {}
                 '
               )"
@@ -125,17 +145,23 @@ jobs:
                   try {
                     const j = JSON.parse(s);
                     const u = j._npmUser ?? j.dist?._npmUser ?? null;
-                    if (u && typeof u === "object" && u.name) process.stdout.write(String(u.name));
+                    if (typeof u === "string") {
+                      const m = u.match(/^([^<]+)</);
+                      if (m) process.stdout.write(String(m[1]).trim());
+                      else process.stdout.write(u);
+                    } else if (u && typeof u === "object" && u.name) {
+                      process.stdout.write(String(u.name));
+                    }
                   } catch {}
                 '
               )"
 
-              if [ "$NPM_USER_EMAIL" = "$EXPECTED_OIDC_EMAIL" ] || [ "$NPM_USER_NAME" = "$EXPECTED_OIDC_EMAIL" ]; then
+              if [ "$NPM_USER_EMAIL" = "$EXPECTED_OIDC_EMAIL" ] || [ "$NPM_USER_NAME" = "$EXPECTED_OIDC_EMAIL" ] || printf '%s' "$NPM_USER_RAW" | grep -q "$EXPECTED_OIDC_EMAIL"; then
                 break
               fi
 
               if [ "$i" -eq 20 ]; then
-                echo "[ERROR] expected OIDC publish; npm reports _npmUser.email='${NPM_USER_EMAIL:-<empty>}' _npmUser.name='${NPM_USER_NAME:-<empty>}'"
+                echo "[ERROR] expected OIDC publish; npm reports _npmUser.raw='${NPM_USER_RAW:-<empty>}' _npmUser.email='${NPM_USER_EMAIL:-<empty>}' _npmUser.name='${NPM_USER_NAME:-<empty>}'"
                 exit 1
               fi
 
