@@ -104,9 +104,8 @@ This plugin never writes secrets to disk. In `opencode.jsonc`, the token is alwa
 
 ### Recommended setup (zsh, macOS/Linux)
 
-Keep secrets in a separate file and source it from your shell init.
-
-Create `~/.config/opencode/secrets.zsh`:
+Use your existing shell secrets file. For example, if you already source `~/.shell_secrets` from
+`~/.zshrc`, add:
 
 ```zsh
 export FOUNDRY_URL='https://YOUR-STACK.palantirfoundry.com'
@@ -116,14 +115,14 @@ export FOUNDRY_TOKEN='YOUR_TOKEN'
 Lock it down:
 
 ```bash
-chmod 600 ~/.config/opencode/secrets.zsh
+chmod 600 ~/.shell_secrets
 ```
 
-Source it from `~/.zshrc`:
+Ensure `~/.zshrc` sources it:
 
 ```zsh
-if [ -f "$HOME/.config/opencode/secrets.zsh" ]; then
-  source "$HOME/.config/opencode/secrets.zsh"
+if [ -f "$HOME/.shell_secrets" ]; then
+  source "$HOME/.shell_secrets"
 fi
 ```
 
