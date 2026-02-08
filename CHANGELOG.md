@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/anand-testcompare/opencode-palantir/compare/v0.1.3...v0.1.4) (2026-02-08)
+
+
+### Bug Fixes
+
+* paginate list_all_docs ([8ece0b6](https://github.com/anand-testcompare/opencode-palantir/commit/8ece0b6dd06251d992d3b2c3e1b8a689dfb0e366))
+
 ## [0.1.3](https://github.com/anand-testcompare/opencode-palantir/compare/v0.1.2...v0.1.3) (2026-02-08)
 
 
