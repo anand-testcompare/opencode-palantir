@@ -47,11 +47,14 @@ const plugin = (await import('../index.ts')).default as unknown as MinimalPlugin
 describe('/setup-palantir-mcp', () => {
   let tmpDir: string;
   let priorToken: string | undefined;
+  let priorUrl: string | undefined;
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plugin-setup-test-'));
     priorToken = process.env.FOUNDRY_TOKEN;
+    priorUrl = process.env.FOUNDRY_URL;
     process.env.FOUNDRY_TOKEN = 'TEST_TOKEN';
+    delete process.env.FOUNDRY_URL;
   });
 
   afterEach(() => {
@@ -59,6 +62,8 @@ describe('/setup-palantir-mcp', () => {
     vi.restoreAllMocks();
     if (priorToken === undefined) delete process.env.FOUNDRY_TOKEN;
     else process.env.FOUNDRY_TOKEN = priorToken;
+    if (priorUrl === undefined) delete process.env.FOUNDRY_URL;
+    else process.env.FOUNDRY_URL = priorUrl;
   });
 
   async function runSetup(args: string): Promise<{ text: string }> {
