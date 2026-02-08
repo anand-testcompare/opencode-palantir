@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.5](https://github.com/anand-testcompare/opencode-palantir/compare/v0.1.4...v0.1.5) (2026-02-08)
+
+
+### Features
+
+* one-liner install registers commands/agents + auto-bootstrap ([7308050](https://github.com/anand-testcompare/opencode-palantir/commit/7308050f89f9ee4d19a560af11dccd6ac98668d2))
+* register commands/agents and auto-bootstrap mcp ([b230422](https://github.com/anand-testcompare/opencode-palantir/commit/b2304222b47b33cb6950bedd44a0cb705f2d68f6))
+
 ## [0.1.4](https://github.com/anand-testcompare/opencode-palantir/compare/v0.1.3...v0.1.4) (2026-02-08)
 
 
