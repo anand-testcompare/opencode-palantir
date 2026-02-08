@@ -2,11 +2,11 @@
 
 [![npm](https://img.shields.io/npm/v/@openontology/opencode-palantir?logo=npm&label=npm)](https://www.npmjs.com/package/@openontology/opencode-palantir)
 [![downloads](https://img.shields.io/npm/dm/@openontology/opencode-palantir?logo=npm&label=downloads)](https://www.npmjs.com/package/@openontology/opencode-palantir)
-![CI](https://github.com/anand-testcompare/opencode-palantir/actions/workflows/pr.yml/badge.svg)
+![CI](https://img.shields.io/github/actions/workflow/status/anand-testcompare/opencode-palantir/pr.yml?branch=main&label=CI&logo=github)
 ![bun](https://img.shields.io/badge/bun-1.3.2-000000?logo=bun&logoColor=white)
-![@opencode-ai/plugin](https://img.shields.io/github/package-json/dependency-version/anand-testcompare/opencode-palantir/dev/%40opencode-ai%2Fplugin?label=opencode%20plugin%20api)
+![@opencode-ai/plugin](https://img.shields.io/github/package-json/dependency-version/anand-testcompare/opencode-palantir/dev/%40opencode-ai%2Fplugin?label=opencode%20plugin%20api&logo=npm)
 ![palantir-mcp](https://img.shields.io/npm/v/palantir-mcp?logo=npm&label=palantir-mcp)
-![hyparquet](https://img.shields.io/github/package-json/dependency-version/anand-testcompare/opencode-palantir/hyparquet?label=hyparquet)
+![hyparquet](https://img.shields.io/github/package-json/dependency-version/anand-testcompare/opencode-palantir/hyparquet?label=hyparquet&logo=npm)
 
 OpenCode plugin that provides:
 
