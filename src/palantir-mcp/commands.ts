@@ -27,6 +27,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
+function stableSortJson(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableSortJson);
+  if (!isRecord(value)) return value;
+
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(value).sort((a, b) => a.localeCompare(b))) {
+    out[k] = stableSortJson(value[k]);
+  }
+  return out;
+}
+
+function stableJsonStringify(value: unknown): string {
+  return JSON.stringify(stableSortJson(value));
+}
+
 function formatWarnings(warnings: string[]): string {
   if (warnings.length === 0) return '';
   return `\n\nWarnings:\n${warnings.map((w) => `- ${w}`).join('\n')}`;
@@ -62,14 +77,112 @@ async function resolveProfile(worktree: string): Promise<{
   }
 }
 
+function hasPalantirToolToggles(
+  data: Record<string, unknown>,
+  agentName: 'foundry-librarian' | 'foundry'
+): boolean {
+  const agents: unknown = data['agent'];
+  if (!isRecord(agents)) return false;
+  const agent: unknown = agents[agentName];
+  if (!isRecord(agent)) return false;
+  const tools: unknown = agent['tools'];
+  if (!isRecord(tools)) return false;
+  return Object.keys(tools).some((k) => k.startsWith('palantir-mcp_'));
+}
+
+function isAutoBootstrapAlreadyComplete(data: Record<string, unknown>): boolean {
+  const foundryUrl: string | null = extractFoundryApiUrlFromMcpConfig(data);
+
+  const toolsRoot: unknown = data['tools'];
+  const hasGlobalDeny: boolean = isRecord(toolsRoot) && toolsRoot['palantir-mcp_*'] === false;
+
+  const hasAgentToggles: boolean =
+    hasPalantirToolToggles(data, 'foundry-librarian') && hasPalantirToolToggles(data, 'foundry');
+
+  return !!foundryUrl && hasGlobalDeny && hasAgentToggles;
+}
+
+export async function autoBootstrapPalantirMcpIfConfigured(worktree: string): Promise<void> {
+  try {
+    const tokenRaw: string | undefined = process.env.FOUNDRY_TOKEN;
+    const urlRaw: string | undefined = process.env.FOUNDRY_URL;
+    if (!tokenRaw || tokenRaw.trim().length === 0) return;
+    if (!urlRaw || urlRaw.trim().length === 0) return;
+
+    const normalized = normalizeFoundryBaseUrl(urlRaw);
+    if ('error' in normalized) return;
+
+    const readJsonc = await readOpencodeJsonc(worktree);
+    if (!readJsonc.ok && !('missing' in readJsonc)) return;
+
+    const readLegacy = await readLegacyOpencodeJson(worktree);
+    if (!readLegacy.ok && !('missing' in readLegacy)) return;
+
+    const baseJsoncData: unknown = readJsonc.ok ? readJsonc.data : {};
+    const base: Record<string, unknown> = isRecord(baseJsoncData) ? baseJsoncData : {};
+    const merged: Record<string, unknown> = readLegacy.ok
+      ? mergeLegacyIntoJsonc(readLegacy.data, base)
+      : { ...base };
+
+    if (isAutoBootstrapAlreadyComplete(merged)) return;
+
+    const existingMcpUrlRaw: string | null = extractFoundryApiUrlFromMcpConfig(merged);
+    const existingMcpUrlNorm = existingMcpUrlRaw
+      ? normalizeFoundryBaseUrl(existingMcpUrlRaw)
+      : null;
+
+    const { profile } = await resolveProfile(worktree);
+    const discoveryUrl: string =
+      existingMcpUrlNorm && 'url' in existingMcpUrlNorm ? existingMcpUrlNorm.url : normalized.url;
+
+    const toolNames: string[] = await listPalantirMcpTools(discoveryUrl);
+    if (toolNames.length === 0) return;
+
+    const allowlist = computeAllowedTools(profile, toolNames);
+    const patch = patchConfigForSetup(merged, {
+      foundryApiUrl: normalized.url,
+      toolNames,
+      profile,
+      allowlist,
+    });
+
+    const jsoncMissing: boolean = !readJsonc.ok && 'missing' in readJsonc;
+    const needsMigration: boolean = jsoncMissing && readLegacy.ok;
+    const changed: boolean =
+      needsMigration || stableJsonStringify(merged) !== stableJsonStringify(patch.data);
+
+    if (!changed) return;
+
+    const outPath: string = path.join(worktree, OPENCODE_JSONC_FILENAME);
+    const text: string = stringifyJsonc(patch.data);
+    await writeFileAtomic(outPath, text);
+
+    if (readLegacy.ok) {
+      await renameLegacyToBak(worktree);
+    }
+  } catch (err) {
+    // Best-effort; never block startup on bootstrap failures.
+    // Intentionally no logging here (no-console; avoid polluting TUI). Use /setup-palantir-mcp
+    // for explicit, user-visible error output.
+    void err;
+    return;
+  }
+}
+
 export async function setupPalantirMcp(worktree: string, rawArgs: string): Promise<string> {
-  const urlArg: string = rawArgs.trim();
+  const urlFromArgs: string = rawArgs.trim();
+  const urlFromEnvRaw: string | undefined = process.env.FOUNDRY_URL;
+  const urlFromEnv: string = typeof urlFromEnvRaw === 'string' ? urlFromEnvRaw.trim() : '';
+  const urlArg: string = urlFromArgs || urlFromEnv;
   if (!urlArg) {
     return [
       '[ERROR] Missing Foundry base URL.',
       '',
       'Usage:',
       '  /setup-palantir-mcp <foundry_api_url>',
+      '',
+      'Or set:',
+      '  export FOUNDRY_URL=<foundry_api_url>',
       '',
       'Example:',
       '  /setup-palantir-mcp https://23dimethyl.usw-3.palantirfoundry.com',

@@ -186,7 +186,7 @@ describe('Plugin', () => {
     expect(result).not.toContain('/apollo/');
     expect(result).not.toContain('/gotham/');
 
-    const lineCount = result.split('\n').filter((l) => l.startsWith('- ')).length;
+    const lineCount = (result as string).split('\n').filter((l) => l.startsWith('- ')).length;
     expect(lineCount).toBeLessThanOrEqual(50);
   });
 
