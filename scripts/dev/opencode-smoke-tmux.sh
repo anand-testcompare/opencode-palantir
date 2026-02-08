@@ -23,9 +23,23 @@ if tmux -L "${SOCKET_NAME}" has-session -t "${SESSION_NAME}" 2>/dev/null; then
   SESSION_NAME="${SESSION_NAME}-${TS}"
 fi
 
+opencode_bin=""
+if [[ -n "${OPENCODE_BIN:-}" ]]; then
+  opencode_bin="${OPENCODE_BIN}"
+elif [[ -x "${HOME}/.opencode/bin/opencode" ]]; then
+  opencode_bin="${HOME}/.opencode/bin/opencode"
+else
+  opencode_bin="$(command -v opencode || true)"
+fi
+
+if [[ -z "${opencode_bin}" ]]; then
+  echo "[ERROR] opencode binary not found. Install opencode or set OPENCODE_BIN." >&2
+  exit 1
+fi
+
 CMD="cd '$(pwd)' && \
   export OPENCODE_SMOKE_REPO='${REPO_PATH}' && \
-  export OPENCODE_BIN='/home/anandpant/.opencode/bin/opencode' && \
+  export OPENCODE_BIN='${opencode_bin}' && \
   ${FOUNDRY_URL:+export OPENCODE_SMOKE_FOUNDRY_URL='${FOUNDRY_URL}' && }\
   echo '[smoke] running vitest smoke...' && \
   bun test src/__tests__/opencodeSmoke.test.ts; \

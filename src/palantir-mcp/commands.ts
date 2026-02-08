@@ -85,8 +85,10 @@ export async function setupPalantirMcp(worktree: string, rawArgs: string): Promi
       '',
       'palantir-mcp tool discovery requires a token. Export FOUNDRY_TOKEN and retry.',
       '',
-      "Tip: if `echo $FOUNDRY_TOKEN` prints a value but this still errors, it's likely not exported.",
-      'Run `export FOUNDRY_TOKEN` (or set `export FOUNDRY_TOKEN=...` in your shell secrets) and retry.',
+      'Tip: if `echo $FOUNDRY_TOKEN` prints a value but this still errors, it is likely ' +
+        'not exported.',
+      'Run `export FOUNDRY_TOKEN` (or set `export FOUNDRY_TOKEN=...` in your shell ' +
+        'secrets) and retry.',
     ].join('\n');
   }
 
@@ -172,8 +174,10 @@ export async function rescanPalantirMcpTools(worktree: string): Promise<string> 
       '',
       'palantir-mcp tool discovery requires a token. Export FOUNDRY_TOKEN and retry.',
       '',
-      "Tip: if `echo $FOUNDRY_TOKEN` prints a value but this still errors, it's likely not exported.",
-      'Run `export FOUNDRY_TOKEN` (or set `export FOUNDRY_TOKEN=...` in your shell secrets) and retry.',
+      'Tip: if `echo $FOUNDRY_TOKEN` prints a value but this still errors, it is likely ' +
+        'not exported.',
+      'Run `export FOUNDRY_TOKEN` (or set `export FOUNDRY_TOKEN=...` in your shell ' +
+        'secrets) and retry.',
     ].join('\n');
   }
 
