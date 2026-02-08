@@ -18,11 +18,17 @@ Add the plugin to your OpenCode config:
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["@openontology/opencode-palantir@^0.1.1"]
+  "plugin": ["@openontology/opencode-palantir@^0.1.4"]
 }
 ```
 
 Restart OpenCode.
+
+After enabling the plugin, OpenCode will automatically register:
+
+- Tools: `get_doc_page`, `list_all_docs`
+- Commands: `/refresh-docs`, `/setup-palantir-mcp`, `/rescan-palantir-mcp-tools`
+- Agents: `foundry-librarian`, `foundry`
 
 ### 2) (Optional) Install per-project
 
@@ -35,7 +41,7 @@ mkdir -p .opencode
 cat > .opencode/package.json <<'EOF'
 {
   "dependencies": {
-    "@openontology/opencode-palantir": "^0.1.1"
+    "@openontology/opencode-palantir": "^0.1.4"
   }
 }
 EOF
@@ -91,7 +97,22 @@ If `data/docs.parquet` is missing, both tools will instruct you to run `/refresh
 
 ## Foundry MCP setup helpers
 
-This plugin also provides two OpenCode commands to set up `palantir-mcp` with project-scoped tool
+This plugin registers Foundry helper commands and agents automatically at startup (config-driven).
+
+### Auto-bootstrap (no command required)
+
+If you set both `FOUNDRY_TOKEN` and `FOUNDRY_URL` in your environment, the plugin will
+automatically and idempotently patch repo-root `opencode.jsonc` to initialize:
+
+- `mcp.palantir-mcp` local server config
+- global tool deny: `tools.palantir-mcp_* = false`
+- per-agent `palantir-mcp_*` allow/deny toggles under `foundry-librarian` and `foundry`
+
+Secrets are never written: `FOUNDRY_TOKEN` is referenced as `{env:FOUNDRY_TOKEN}`.
+
+### Guided setup and maintenance
+
+You can also use the commands below to set up and maintain `palantir-mcp` with project-scoped tool
 gating and Foundry sub-agents:
 
 - **`/setup-palantir-mcp <foundry_api_url>`**
@@ -171,7 +192,11 @@ When installed as an OpenCode plugin, exposes:
 
 - **`get_doc_page`** - Retrieve a specific doc page by URL
 - **`list_all_docs`** - List all available documentation pages
-- **`/refresh-docs`** - Command hook to re-fetch all documentation
+- **`/refresh-docs`** - Command to re-fetch all documentation
+- **`/setup-palantir-mcp`** - Command to bootstrap MCP config + tool gating
+- **`/rescan-palantir-mcp-tools`** - Command to re-scan `palantir-mcp` tools and add missing toggles
+- **`foundry-librarian`** - Foundry exploration agent (sub-agent)
+- **`foundry`** - Foundry execution agent (sub-agent)
 
 ### Installing in OpenCode (this repo only)
 
