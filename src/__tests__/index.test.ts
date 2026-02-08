@@ -26,7 +26,7 @@ describe('Plugin', () => {
     await writeParquet(
       [
         {
-          url: '/docs/foundry/ontology/overview/',
+          url: '/foundry/ontology/overview/',
           title: 'Ontology Overview',
           content: 'This is the ontology overview content.',
           wordCount: 6,
@@ -34,7 +34,7 @@ describe('Plugin', () => {
           fetchedAt: '2025-01-01T00:00:00.000Z',
         },
         {
-          url: '/docs/foundry/actions/',
+          url: '/foundry/actions/',
           title: 'Actions',
           content: 'Actions documentation content.',
           wordCount: 3,
@@ -60,7 +60,7 @@ describe('Plugin', () => {
 
     // Intentionally unsorted URL insertion to prove deterministic ordering.
     rows.push({
-      url: '/docs/apollo/zzz/',
+      url: '/apollo/zzz/',
       title: 'Apollo ZZZ',
       content: 'apollo content',
       wordCount: 2,
@@ -68,7 +68,7 @@ describe('Plugin', () => {
       fetchedAt: '2025-01-01T00:00:00.000Z',
     });
     rows.push({
-      url: '/docs/foundry/zzz/',
+      url: '/foundry/zzz/',
       title: 'Foundry ZZZ',
       content: 'foundry content',
       wordCount: 2,
@@ -76,7 +76,7 @@ describe('Plugin', () => {
       fetchedAt: '2025-01-01T00:00:00.000Z',
     });
     rows.push({
-      url: '/docs/gotham/aaa/',
+      url: '/gotham/aaa/',
       title: 'Gotham AAA',
       content: 'gotham content',
       wordCount: 2,
@@ -84,9 +84,18 @@ describe('Plugin', () => {
       fetchedAt: '2025-01-01T00:00:00.000Z',
     });
 
+    rows.push({
+      url: '/foundry/compute-modules/overview/',
+      title: 'Compute modules',
+      content: 'Compute modules overview content.',
+      wordCount: 4,
+      meta: {},
+      fetchedAt: '2025-01-01T00:00:00.000Z',
+    });
+
     for (let i = 0; i < 60; i += 1) {
       rows.push({
-        url: `/docs/foundry/many/${String(i).padStart(2, '0')}/`,
+        url: `/foundry/many/${String(i).padStart(2, '0')}/`,
         title: `Foundry Many ${i}`,
         content: 'foundry many content',
         wordCount: 3,
@@ -115,6 +124,8 @@ describe('Plugin', () => {
     expect(getDocPage.description).toBeTruthy();
     expect(getDocPage.description).toContain('documentation page');
     expect(getDocPage.args).toHaveProperty('url');
+    expect(getDocPage.args).toHaveProperty('query');
+    expect(getDocPage.args).toHaveProperty('scope');
   });
 
   it('list_all_docs tool has description and no required args', async () => {
@@ -124,7 +135,7 @@ describe('Plugin', () => {
     expect(listAllDocs.description).toBeTruthy();
     expect(listAllDocs.description).toContain('documentation');
     const keys = Object.keys(listAllDocs.args).sort((a, b) => a.localeCompare(b));
-    expect(keys).toEqual(['limit', 'offset', 'scope']);
+    expect(keys).toEqual(['limit', 'offset', 'query', 'scope']);
   });
 
   it('get_doc_page execute returns page content when DB exists', async () => {
@@ -132,7 +143,7 @@ describe('Plugin', () => {
     const hooks = await plugin({ worktree: tmpDir });
 
     const result = await hooks.tool['get_doc_page'].execute(
-      { url: '/docs/foundry/ontology/overview/' },
+      { url: '/foundry/ontology/overview/' },
       {}
     );
 
@@ -157,9 +168,10 @@ describe('Plugin', () => {
 
     expect(result).toContain('Available Palantir Documentation Pages');
     expect(result).toContain('scope=foundry');
+    expect(result).toContain('query=');
     expect(result).toContain('total=2');
-    expect(result).toContain('- Ontology Overview (/docs/foundry/ontology/overview/)');
-    expect(result).toContain('- Actions (/docs/foundry/actions/)');
+    expect(result).toContain('- Ontology Overview (/foundry/ontology/overview/)');
+    expect(result).toContain('- Actions (/foundry/actions/)');
   });
 
   it('list_all_docs defaults to bounded results and foundry scope', async () => {
@@ -171,8 +183,8 @@ describe('Plugin', () => {
     expect(result).toContain('scope=foundry');
     expect(result).toContain('limit=50');
     expect(result).toContain('Next: call list_all_docs');
-    expect(result).not.toContain('/docs/apollo/');
-    expect(result).not.toContain('/docs/gotham/');
+    expect(result).not.toContain('/apollo/');
+    expect(result).not.toContain('/gotham/');
 
     const lineCount = result.split('\n').filter((l) => l.startsWith('- ')).length;
     expect(lineCount).toBeLessThanOrEqual(50);
@@ -192,9 +204,9 @@ describe('Plugin', () => {
     );
 
     const getOnlyUrl = (text: string): string => {
-      const line = text.split('\n').find((l) => l.startsWith('- ') && l.includes('(/docs/'));
+      const line = text.split('\n').find((l) => l.startsWith('- ') && l.includes('(/'));
       expect(line).toBeTruthy();
-      const match = line?.match(/\((\/docs\/[^)]+)\)/);
+      const match = line?.match(/\((\/[^)]+)\)/);
       expect(match?.[1]).toBeTruthy();
       return match?.[1] as string;
     };
@@ -203,9 +215,9 @@ describe('Plugin', () => {
     const url1 = getOnlyUrl(second);
     expect(url0).not.toBe(url1);
 
-    // Because ordering is by URL, /docs/apollo/... sorts before /docs/foundry/... and /docs/gotham/...
-    expect(url0).toBe('/docs/apollo/zzz/');
-    expect(url1).toBe('/docs/foundry/many/00/');
+    // Because ordering is by URL, /apollo/... sorts before /foundry/... and /gotham/...
+    expect(url0).toBe('/apollo/zzz/');
+    expect(url1).toBe('/foundry/compute-modules/overview/');
   });
 
   it('list_all_docs scope=all includes non-foundry URLs', async () => {
@@ -218,7 +230,47 @@ describe('Plugin', () => {
     );
 
     expect(result).toContain('scope=all');
-    expect(result).toContain('/docs/apollo/zzz/');
+    expect(result).toContain('/apollo/zzz/');
+  });
+
+  it('list_all_docs query filters and ranks results', async () => {
+    await seedDatabaseMany();
+    const hooks = await plugin({ worktree: tmpDir });
+
+    const result = await hooks.tool['list_all_docs'].execute(
+      { query: 'compute modules', scope: 'foundry', limit: 10, offset: 0 },
+      {}
+    );
+
+    expect(result).toContain('scope=foundry');
+    expect(result).toContain('query=compute modules');
+    expect(result).toContain('/foundry/compute-modules/overview/');
+  });
+
+  it('get_doc_page accepts common URL variants (missing /docs prefix, missing trailing slash)', async () => {
+    await seedDatabaseMany();
+    const hooks = await plugin({ worktree: tmpDir });
+
+    const result = await hooks.tool['get_doc_page'].execute(
+      { url: '/docs/foundry/compute-modules/overview' },
+      {}
+    );
+
+    expect(result).toContain('Compute modules overview content.');
+  });
+
+  it('get_doc_page can resolve a page from a free-text query', async () => {
+    await seedDatabaseMany();
+    const hooks = await plugin({ worktree: tmpDir });
+
+    const result = await hooks.tool['get_doc_page'].execute(
+      { query: 'compute modules', scope: 'foundry' },
+      {}
+    );
+
+    expect(result).toContain('Matched:');
+    expect(result).toContain('/foundry/compute-modules/overview/');
+    expect(result).toContain('Compute modules overview content.');
   });
 
   it('list_all_docs invalid args fail safely', async () => {
