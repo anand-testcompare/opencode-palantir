@@ -51,8 +51,6 @@ EOF
 
 Then create a tiny wrapper file in `.opencode/plugins/`:
 
-Create a tiny wrapper file in `.opencode/plugins/`:
-
 ```bash
 mkdir -p .opencode/plugins
 

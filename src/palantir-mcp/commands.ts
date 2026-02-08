@@ -160,8 +160,11 @@ export async function autoBootstrapPalantirMcpIfConfigured(worktree: string): Pr
     if (readLegacy.ok) {
       await renameLegacyToBak(worktree);
     }
-  } catch {
+  } catch (err) {
     // Best-effort; never block startup on bootstrap failures.
+    // Intentionally no logging here (no-console; avoid polluting TUI). Use /setup-palantir-mcp
+    // for explicit, user-visible error output.
+    void err;
     return;
   }
 }

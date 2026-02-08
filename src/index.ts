@@ -68,8 +68,7 @@ const plugin: Plugin = async (input) => {
       agent.mode = 'subagent';
     }
 
-    const agentRecord = agent as unknown as Record<string, unknown>;
-    if (typeof agentRecord.hidden !== 'boolean') agentRecord.hidden = false;
+    if (typeof agent['hidden'] !== 'boolean') agent['hidden'] = false;
 
     if (typeof agent.description !== 'string') agent.description = defaultDescription;
 
