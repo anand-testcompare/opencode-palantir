@@ -1,6 +1,8 @@
+import path from 'node:path';
+
 import type { Plugin } from '@opencode-ai/plugin';
 import { tool } from '@opencode-ai/plugin/tool';
-import path from 'node:path';
+import type { AgentConfig, Config } from '@opencode-ai/sdk';
 import {
   createDatabase,
   getPage,
@@ -9,7 +11,11 @@ import {
   type ParquetStore,
 } from './docs/db.ts';
 import { fetchAllDocs } from './docs/fetch.ts';
-import { rescanPalantirMcpTools, setupPalantirMcp } from './palantir-mcp/commands.ts';
+import {
+  autoBootstrapPalantirMcpIfConfigured,
+  rescanPalantirMcpTools,
+  setupPalantirMcp,
+} from './palantir-mcp/commands.ts';
 
 const NO_DB_MESSAGE =
   'Documentation database not found. Run /refresh-docs to download Palantir Foundry documentation.';
@@ -17,9 +23,110 @@ const NO_DB_MESSAGE =
 const plugin: Plugin = async (input) => {
   const dbPath = path.join(input.worktree, 'data', 'docs.parquet');
   let dbInstance: ParquetStore | null = null;
+  let autoBootstrapStarted: boolean = false;
 
   type CommandOutput = { parts: unknown[] };
   type DocScope = 'foundry' | 'apollo' | 'gotham' | 'all';
+
+  function ensureCommandDefinitions(cfg: Config): void {
+    if (!cfg.command) cfg.command = {};
+
+    if (!cfg.command['refresh-docs']) {
+      cfg.command['refresh-docs'] = {
+        template: 'Refresh Palantir documentation database.',
+        description: 'Download Palantir docs and write data/docs.parquet (local).',
+      };
+    }
+
+    if (!cfg.command['setup-palantir-mcp']) {
+      cfg.command['setup-palantir-mcp'] = {
+        template: 'Set up palantir-mcp for this repo.',
+        description:
+          'Guided MCP setup for Foundry. Usage: /setup-palantir-mcp <foundry_api_url>. Requires FOUNDRY_TOKEN for tool discovery.',
+      };
+    }
+
+    if (!cfg.command['rescan-palantir-mcp-tools']) {
+      cfg.command['rescan-palantir-mcp-tools'] = {
+        template: 'Re-scan palantir-mcp tools and patch tool gating.',
+        description:
+          'Re-discovers the palantir-mcp tool list and adds missing palantir-mcp_* toggles (does not overwrite existing toggles). Requires FOUNDRY_TOKEN.',
+      };
+    }
+  }
+
+  function ensureAgentDefaults(
+    agent: AgentConfig,
+    agentName: 'foundry-librarian' | 'foundry'
+  ): void {
+    const defaultDescription: string =
+      agentName === 'foundry-librarian'
+        ? 'Foundry exploration and context gathering (parallel-friendly)'
+        : 'Foundry execution agent (uses only enabled palantir-mcp tools)';
+
+    if (agent.mode !== 'subagent' && agent.mode !== 'primary' && agent.mode !== 'all') {
+      agent.mode = 'subagent';
+    }
+
+    const agentRecord = agent as unknown as Record<string, unknown>;
+    if (typeof agentRecord.hidden !== 'boolean') agentRecord.hidden = false;
+
+    if (typeof agent.description !== 'string') agent.description = defaultDescription;
+
+    if (typeof agent.prompt !== 'string') {
+      agent.prompt =
+        agentName === 'foundry-librarian'
+          ? [
+              'You are the Foundry librarian.',
+              '',
+              '- Focus on exploration and context gathering.',
+              '- Split independent exploration tasks and run them in parallel when possible.',
+              '- Return compact summaries and cite the tool calls you ran.',
+              '- Avoid dumping massive schemas unless explicitly asked.',
+            ].join('\n')
+          : [
+              'You are the Foundry execution agent.',
+              '',
+              '- Use only enabled palantir-mcp tools.',
+              '- Prefer working from summaries produced by @foundry-librarian.',
+              '- Keep operations focused and deterministic.',
+            ].join('\n');
+    }
+
+    if (!agent.tools) agent.tools = {};
+    if (agentName === 'foundry-librarian') {
+      if (agent.tools.get_doc_page === undefined) agent.tools.get_doc_page = true;
+      if (agent.tools.list_all_docs === undefined) agent.tools.list_all_docs = true;
+      return;
+    }
+
+    if (agent.tools.get_doc_page === undefined) agent.tools.get_doc_page = false;
+    if (agent.tools.list_all_docs === undefined) agent.tools.list_all_docs = false;
+  }
+
+  function ensureAgentDefinitions(cfg: Config): void {
+    if (!cfg.agent) cfg.agent = {};
+
+    const librarian: AgentConfig = cfg.agent['foundry-librarian'] ?? {};
+    ensureAgentDefaults(librarian, 'foundry-librarian');
+    cfg.agent['foundry-librarian'] = librarian;
+
+    const foundry: AgentConfig = cfg.agent.foundry ?? {};
+    ensureAgentDefaults(foundry, 'foundry');
+    cfg.agent.foundry = foundry;
+  }
+
+  function maybeStartAutoBootstrap(): void {
+    if (autoBootstrapStarted) return;
+
+    const token: string | undefined = process.env.FOUNDRY_TOKEN;
+    const url: string | undefined = process.env.FOUNDRY_URL;
+    if (!token || token.trim().length === 0) return;
+    if (!url || url.trim().length === 0) return;
+
+    autoBootstrapStarted = true;
+    void autoBootstrapPalantirMcpIfConfigured(input.worktree);
+  }
 
   async function getDb(): Promise<ParquetStore> {
     if (!dbInstance) {
@@ -151,6 +258,12 @@ const plugin: Plugin = async (input) => {
   }
 
   return {
+    config: async (cfg) => {
+      ensureCommandDefinitions(cfg);
+      ensureAgentDefinitions(cfg);
+      maybeStartAutoBootstrap();
+    },
+
     tool: {
       get_doc_page: tool({
         description:
