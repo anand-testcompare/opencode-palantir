@@ -97,7 +97,7 @@ This plugin never writes secrets to disk. In `opencode.jsonc`, the token is alwa
 
 - `FOUNDRY_URL`
   - Foundry base URL (used for auto-bootstrap and can be used as a default for `/setup-palantir-mcp`)
-  - Example: `https://YOUR-STACK.usw-3.palantirfoundry.com`
+  - Example: `https://YOUR-STACK.palantirfoundry.com`
 - `FOUNDRY_TOKEN`
   - Foundry token used by `palantir-mcp` for tool discovery
   - Must be exported (not just set in a shell)
