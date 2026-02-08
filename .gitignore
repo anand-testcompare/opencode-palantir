@@ -17,3 +17,6 @@ data/*.parquet
 *.tgz
 
 .sisyphus/
+
+# Local OpenCode session transcripts (generated during manual testing)
+session-*.md
