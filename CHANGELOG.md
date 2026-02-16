@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.6](https://github.com/anand-testcompare/opencode-palantir/compare/v0.1.5...v0.1.6) (2026-02-16)
+
+
+### Features
+
+* auto-bootstrap docs snapshot + safe refresh UX ([021b715](https://github.com/anand-testcompare/opencode-palantir/commit/021b715efb20fa244804270111017be66ac71e4f))
+* auto-bootstrap docs snapshot and refresh workflow ([b2ee23b](https://github.com/anand-testcompare/opencode-palantir/commit/b2ee23b0be95d207f451806205596897b588dc88))
+
 ## [0.1.5](https://github.com/anand-testcompare/opencode-palantir/compare/v0.1.4...v0.1.5) (2026-02-08)
 
 
