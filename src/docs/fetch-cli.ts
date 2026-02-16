@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import { fetchAllDocs } from './fetch.ts';
 import { mkdirSync } from 'node:fs';
+import fs from 'node:fs';
 import { join } from 'node:path';
 
 async function main() {
@@ -13,7 +14,40 @@ async function main() {
     const dbPath = join(dataDir, 'docs.parquet');
 
     // Fetch
-    const result = await fetchAllDocs(dbPath);
+    const result = await fetchAllDocs(dbPath, {
+      progressEvery: 250,
+      onProgress: (event) => {
+        if (event.type === 'discovered') {
+          console.log(`Discovered ${event.totalPages} pages...`);
+          return;
+        }
+        if (event.type === 'progress') {
+          console.log(`Processed ${event.processedPages}/${event.totalPages} pages...`);
+        }
+      },
+    });
+
+    const summary = {
+      generatedAt: new Date().toISOString(),
+      totalPages: result.totalPages,
+      fetchedPages: result.fetchedPages,
+      failedPages: result.failedUrls.length,
+      failedUrls: result.failedUrls,
+      dbPath: result.dbPath,
+    };
+
+    const summaryPath: string | undefined = process.env.DOCS_SUMMARY_PATH;
+    if (summaryPath && summaryPath.trim().length > 0) {
+      const resolvedSummaryPath = summaryPath.trim();
+      const summaryDir = resolvedSummaryPath.includes('/')
+        ? resolvedSummaryPath.slice(0, resolvedSummaryPath.lastIndexOf('/'))
+        : '';
+      if (summaryDir.length > 0) {
+        mkdirSync(summaryDir, { recursive: true });
+      }
+      fs.writeFileSync(resolvedSummaryPath, `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+      console.log(`Wrote summary to ${resolvedSummaryPath}`);
+    }
 
     // Log summary
     console.log('\nFetch complete:');

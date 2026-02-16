@@ -36,7 +36,7 @@ Restart OpenCode.
 After enabling the plugin, OpenCode will automatically register:
 
 - Tools: `get_doc_page`, `list_all_docs`
-- Commands: `/refresh-docs`, `/setup-palantir-mcp`, `/rescan-palantir-mcp-tools`
+- Commands: `/refresh-docs`, `/refresh-docs-rescrape`, `/setup-palantir-mcp`, `/rescan-palantir-mcp-tools`
 - Agents: `foundry-librarian`, `foundry`
 
 ### Versions: how to get the latest
@@ -131,17 +131,22 @@ it’s `export`ed in the environment where OpenCode is launched.
 
 ## Docs tools (Palantir public docs)
 
-This package does **not** ship with docs bundled. The docs DB is a local file:
+The docs DB is a local file:
 
 - `data/docs.parquet` (in your repo root)
 
-### Fetch docs
+### First run behavior
 
-In OpenCode, run:
+On startup and tool usage, the plugin automatically ensures `data/docs.parquet` exists by using a
+prebuilt snapshot (download/copy). In most repos, docs tools should work without any manual setup.
 
-- `/refresh-docs`
+### Refresh commands
 
-This downloads the docs and writes `data/docs.parquet`.
+- `/refresh-docs` (recommended)
+  - Force refresh from a prebuilt snapshot (no live rescrape)
+- `/refresh-docs-rescrape` (unsafe/experimental fallback)
+  - Live-rescrapes palantir.com docs and rebuilds `data/docs.parquet`
+  - Use only when snapshot download/copy is blocked
 
 ### Tools
 
@@ -149,8 +154,6 @@ This downloads the docs and writes `data/docs.parquet`.
   - Retrieve a doc page by URL, or fuzzy match by query
 - `list_all_docs`
   - List docs with pagination and optional query/scope filtering
-
-If `data/docs.parquet` is missing, both tools will tell you to run `/refresh-docs`.
 
 ## Foundry MCP helpers
 

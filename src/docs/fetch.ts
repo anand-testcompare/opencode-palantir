@@ -24,6 +24,18 @@ export type FetchResult = {
   dbPath: string;
 };
 
+export type FetchProgressEvent =
+  | { type: 'discovered'; totalPages: number }
+  | { type: 'progress'; processedPages: number; totalPages: number }
+  | { type: 'page-failed'; url: string; error: string }
+  | { type: 'completed'; totalPages: number; fetchedPages: number; failedPages: number };
+
+export type FetchAllDocsOptions = {
+  concurrency?: number;
+  progressEvery?: number;
+  onProgress?: (event: FetchProgressEvent) => void;
+};
+
 export const PAGEFIND_BASE = 'https://www.palantir.com/docs/pagefind';
 export const PAGEFIND_HEADER_SIZE = 12;
 export const DEFAULT_CONCURRENCY = 15;
@@ -33,6 +45,10 @@ const BASE_DELAY_MS = 1000;
 const BACKOFF_FACTOR = 2;
 const JITTER_RANGE = 0.25;
 const BATCH_SIZE = 100;
+
+function formatError(error: unknown): string {
+  return error instanceof Error ? error.toString() : String(error);
+}
 
 /**
  * Decompress Pagefind data.
@@ -196,8 +212,20 @@ async function withConcurrencyLimit<T>(
   });
 }
 
-export async function fetchAllDocs(dbPath: string): Promise<FetchResult> {
+export async function fetchAllDocs(
+  dbPath: string,
+  options: FetchAllDocsOptions = {}
+): Promise<FetchResult> {
   const entry = await fetchEntryPoint();
+  const onProgress = options.onProgress;
+  const concurrency =
+    typeof options.concurrency === 'number' && options.concurrency > 0
+      ? options.concurrency
+      : DEFAULT_CONCURRENCY;
+  const progressEvery =
+    typeof options.progressEvery === 'number' && options.progressEvery > 0
+      ? Math.floor(options.progressEvery)
+      : BATCH_SIZE;
 
   const langKey = Object.keys(entry.languages)[0];
   if (!langKey) {
@@ -208,23 +236,32 @@ export async function fetchAllDocs(dbPath: string): Promise<FetchResult> {
   const pageHashes = await fetchAndParseMeta(langHash);
 
   const totalPages = pageHashes.length;
+  onProgress?.({ type: 'discovered', totalPages });
   const fetchedRecords: PageRecord[] = [];
   const failedUrls: string[] = [];
-  let done = 0;
+  let processedPages = 0;
 
   const tasks = pageHashes.map(
     (hash) => () =>
-      fetchFragment(hash).then((record) => {
-        done++;
-        if (done % BATCH_SIZE === 0 || done === totalPages) {
-          // eslint-disable-next-line no-console
-          console.log(`Fetched ${done}/${totalPages} pages...`);
-        }
-        return record;
-      })
+      fetchFragment(hash)
+        .catch((error: unknown) => {
+          const url = `${PAGEFIND_BASE}/fragment/${hash}.pf_fragment`;
+          onProgress?.({
+            type: 'page-failed',
+            url,
+            error: formatError(error),
+          });
+          throw error;
+        })
+        .finally(() => {
+          processedPages += 1;
+          if (processedPages % progressEvery === 0 || processedPages === totalPages) {
+            onProgress?.({ type: 'progress', processedPages, totalPages });
+          }
+        })
   );
 
-  const results = await withConcurrencyLimit(tasks, DEFAULT_CONCURRENCY);
+  const results = await withConcurrencyLimit(tasks, concurrency);
 
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
@@ -233,12 +270,16 @@ export async function fetchAllDocs(dbPath: string): Promise<FetchResult> {
     } else {
       const url = `${PAGEFIND_BASE}/fragment/${pageHashes[i]}.pf_fragment`;
       failedUrls.push(url);
-      // eslint-disable-next-line no-console
-      console.log(`[ERROR] Failed to fetch ${url}: ${result.reason.message}`);
     }
   }
 
   await writeParquet(fetchedRecords, dbPath);
+  onProgress?.({
+    type: 'completed',
+    totalPages,
+    fetchedPages: fetchedRecords.length,
+    failedPages: failedUrls.length,
+  });
 
   return {
     totalPages,

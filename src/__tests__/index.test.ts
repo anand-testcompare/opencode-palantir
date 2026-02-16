@@ -4,6 +4,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { writeParquet } from '../docs/write-parquet.ts';
 import * as fetchModule from '../docs/fetch.ts';
+import * as snapshotModule from '../docs/snapshot.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const plugin = (await import('../index.ts')).default as any;
@@ -19,6 +20,7 @@ describe('Plugin', () => {
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
   });
 
   async function seedDatabase(): Promise<void> {
@@ -289,19 +291,80 @@ describe('Plugin', () => {
     expect(badScope).toContain('[ERROR]');
   });
 
-  it('tools return helpful message when docs.db does not exist', async () => {
+  it('auto-bootstrap path makes doc tools work when snapshot is initially missing', async () => {
+    vi.spyOn(snapshotModule, 'ensureDocsParquet').mockImplementation(async () => {
+      await seedDatabase();
+      return {
+        dbPath,
+        changed: true,
+        source: 'download',
+        bytes: 4096,
+      };
+    });
+
+    const hooks = await plugin({ worktree: tmpDir });
+
+    const getResult = await hooks.tool['get_doc_page'].execute(
+      { url: '/foundry/ontology/overview/' },
+      {}
+    );
+    expect(getResult).toContain('ontology overview content');
+
+    const listResult = await hooks.tool['list_all_docs'].execute({}, {});
+    expect(listResult).toContain('Available Palantir Documentation Pages');
+  });
+
+  it('tools surface actionable snapshot errors when bootstrap fails', async () => {
+    vi.spyOn(snapshotModule, 'ensureDocsParquet').mockRejectedValue(new Error('network blocked'));
+
     const hooks = await plugin({ worktree: tmpDir });
 
     const getResult = await hooks.tool['get_doc_page'].execute({ url: '/docs/anything/' }, {});
-    expect(getResult).toContain('Documentation database not found');
+    expect(getResult).toContain('Unable to obtain Palantir docs snapshot');
     expect(getResult).toContain('/refresh-docs');
+    expect(getResult).toContain('/refresh-docs-rescrape');
 
     const listResult = await hooks.tool['list_all_docs'].execute({}, {});
-    expect(listResult).toContain('Documentation database not found');
+    expect(listResult).toContain('Unable to obtain Palantir docs snapshot');
     expect(listResult).toContain('/refresh-docs');
+    expect(listResult).toContain('/refresh-docs-rescrape');
   });
 
-  it('command.execute.before hook triggers fetchAllDocs for /refresh-docs', async () => {
+  it('command.execute.before hook refreshes snapshot for /refresh-docs', async () => {
+    const ensureSpy = vi.spyOn(snapshotModule, 'ensureDocsParquet').mockImplementation(async () => {
+      await seedDatabase();
+      return {
+        dbPath,
+        changed: true,
+        source: 'download',
+        bytes: 2048,
+        downloadUrl: 'https://example.test/docs.parquet',
+      };
+    });
+
+    const hooks = await plugin({ worktree: tmpDir });
+    const hookFn = hooks['command.execute.before'];
+    expect(hookFn).toBeDefined();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const output = { parts: [] as any[] };
+    await hookFn({ command: 'refresh-docs', sessionID: 'test-session', arguments: '' }, output);
+
+    expect(ensureSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dbPath,
+        force: true,
+      })
+    );
+    expect(output.parts).toHaveLength(1);
+    expect(output.parts[0].type).toBe('text');
+    expect(output.parts[0].text).toContain('snapshot_source=download');
+    expect(output.parts[0].text).toContain('indexed_pages=2');
+    expect(output.parts[0].text).toContain('snapshot_bytes=2048');
+  });
+
+  it('command.execute.before hook runs unsafe rescrape command with warning', async () => {
+    await seedDatabase();
     const spy = vi.spyOn(fetchModule, 'fetchAllDocs').mockResolvedValue({
       totalPages: 100,
       fetchedPages: 98,
@@ -315,14 +378,17 @@ describe('Plugin', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const output = { parts: [] as any[] };
-    await hookFn({ command: 'refresh-docs', sessionID: 'test-session', arguments: '' }, output);
+    await hookFn(
+      { command: 'refresh-docs-rescrape', sessionID: 'test-session', arguments: '' },
+      output
+    );
 
-    expect(spy).toHaveBeenCalledWith(dbPath);
+    expect(spy).toHaveBeenCalled();
     expect(output.parts).toHaveLength(1);
     expect(output.parts[0].type).toBe('text');
-    expect(output.parts[0].text).toContain('98');
-    expect(output.parts[0].text).toContain('100');
-    spy.mockRestore();
+    expect(output.parts[0].text).toContain('unsafe/experimental');
+    expect(output.parts[0].text).toContain('fetched_pages=98');
+    expect(output.parts[0].text).toContain('failed_pages=2');
   });
 
   it('command.execute.before hook ignores non-refresh commands', async () => {
