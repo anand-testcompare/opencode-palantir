@@ -1,6 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import type { Stats } from 'node:fs';
+
 export const DEFAULT_DOCS_SNAPSHOT_URLS: string[] = [
   'https://raw.githubusercontent.com/anand-testcompare/opencode-palantir/main/data/docs.parquet',
 ];
@@ -67,7 +69,7 @@ async function ensureDirectoryExists(dbPath: string): Promise<void> {
   await fs.mkdir(path.dirname(dbPath), { recursive: true });
 }
 
-async function statIfExists(filePath: string): Promise<fs.Stats | null> {
+async function statIfExists(filePath: string): Promise<Stats | null> {
   try {
     return await fs.stat(filePath);
   } catch (err) {

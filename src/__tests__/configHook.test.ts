@@ -13,7 +13,6 @@ describe('plugin config hook', () => {
   let tmpDir: string;
   let priorToken: string | undefined;
   let priorUrl: string | undefined;
-  let ensureDocsSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plugin-config-test-'));
@@ -22,7 +21,7 @@ describe('plugin config hook', () => {
     delete process.env.FOUNDRY_TOKEN;
     delete process.env.FOUNDRY_URL;
 
-    ensureDocsSpy = vi.spyOn(snapshotModule, 'ensureDocsParquet').mockResolvedValue({
+    vi.spyOn(snapshotModule, 'ensureDocsParquet').mockResolvedValue({
       dbPath: path.join(tmpDir, 'data', 'docs.parquet'),
       changed: false,
       source: 'existing',
@@ -53,7 +52,9 @@ describe('plugin config hook', () => {
 
     expect(cfg.agent?.['foundry-librarian']).toBeTruthy();
     expect(cfg.agent?.foundry).toBeTruthy();
-    expect(ensureDocsSpy).toHaveBeenCalledWith(
+    expect(cfg.agent?.['foundry-librarian']?.mode).toBe('subagent');
+    expect(cfg.agent?.foundry?.mode).toBe('all');
+    expect(snapshotModule.ensureDocsParquet).toHaveBeenCalledWith(
       expect.objectContaining({
         dbPath: path.join(tmpDir, 'data', 'docs.parquet'),
         force: false,
@@ -74,6 +75,7 @@ describe('plugin config hook', () => {
       },
       agent: {
         foundry: {
+          mode: 'subagent',
           prompt: 'CUSTOM_PROMPT',
           tools: {
             get_doc_page: true,
@@ -87,6 +89,7 @@ describe('plugin config hook', () => {
     expect(cfg.command?.['refresh-docs']?.template).toBe('CUSTOM_TEMPLATE');
     expect(cfg.command?.['refresh-docs']?.description).toBe('CUSTOM_DESCRIPTION');
 
+    expect(cfg.agent?.foundry?.mode).toBe('subagent');
     expect(cfg.agent?.foundry?.prompt).toBe('CUSTOM_PROMPT');
     expect(cfg.agent?.foundry?.tools?.get_doc_page).toBe(true);
     // Additive defaults are allowed.

@@ -69,7 +69,7 @@ const plugin: Plugin = async (input) => {
       cfg.command['setup-palantir-mcp'] = {
         template: 'Set up palantir-mcp for this repo.',
         description:
-          'Guided MCP setup for Foundry. Usage: /setup-palantir-mcp <foundry_api_url>. Requires FOUNDRY_TOKEN for tool discovery.',
+          'Guided MCP setup for Foundry. Usage: /setup-palantir-mcp <foundry_api_url> [--profile <profile_id>]. Requires FOUNDRY_TOKEN for tool discovery.',
       };
     }
 
@@ -77,7 +77,7 @@ const plugin: Plugin = async (input) => {
       cfg.command['rescan-palantir-mcp-tools'] = {
         template: 'Re-scan palantir-mcp tools and patch tool gating.',
         description:
-          'Re-discovers the palantir-mcp tool list and adds missing palantir-mcp_* toggles (does not overwrite existing toggles). Requires FOUNDRY_TOKEN.',
+          'Re-discovers the palantir-mcp tool list and adds missing palantir-mcp_* toggles (does not overwrite existing toggles). Usage: /rescan-palantir-mcp-tools [--profile <profile_id>]. Requires FOUNDRY_TOKEN.',
       };
     }
   }
@@ -92,7 +92,7 @@ const plugin: Plugin = async (input) => {
         : 'Foundry execution agent (uses only enabled palantir-mcp tools)';
 
     if (agent.mode !== 'subagent' && agent.mode !== 'primary' && agent.mode !== 'all') {
-      agent.mode = 'subagent';
+      agent.mode = agentName === 'foundry' ? 'all' : 'subagent';
     }
 
     if (typeof agent['hidden'] !== 'boolean') agent['hidden'] = false;
@@ -691,7 +691,7 @@ const plugin: Plugin = async (input) => {
       }
 
       if (hookInput.command === 'rescan-palantir-mcp-tools') {
-        const text = await rescanPalantirMcpTools(input.worktree);
+        const text = await rescanPalantirMcpTools(input.worktree, hookInput.arguments ?? '');
         pushText(output, text);
         return;
       }

@@ -19,6 +19,7 @@ type McpServerConfig = {
 
 type AgentConfig = {
   description?: string;
+  mode?: string;
   tools?: Record<string, unknown>;
 };
 
@@ -85,6 +86,14 @@ describe('/setup-palantir-mcp', () => {
 
     expect(result.text).toContain('Usage:');
     expect(spy).not.toHaveBeenCalled();
+    expect(fs.existsSync(path.join(tmpDir, 'opencode.jsonc'))).toBe(false);
+  });
+
+  it('returns a validation error for an invalid profile override', async () => {
+    const result = await runSetup('https://example.palantirfoundry.com --profile nope');
+
+    expect(result.text).toContain('invalid');
+    expect(result.text).toContain('Valid values');
     expect(fs.existsSync(path.join(tmpDir, 'opencode.jsonc'))).toBe(false);
   });
 
@@ -190,18 +199,67 @@ describe('/setup-palantir-mcp', () => {
 
     expect(cfg.agent?.['foundry-librarian']?.tools?.get_doc_page).toBe(true);
     expect(cfg.agent?.['foundry-librarian']?.tools?.list_all_docs).toBe(true);
+    expect(cfg.agent?.['foundry-librarian']?.mode).toBe('subagent');
 
     // execution agent defaults to no docs tools
     expect(cfg.agent?.foundry?.tools?.get_doc_page).toBe(false);
     expect(cfg.agent?.foundry?.tools?.list_all_docs).toBe(false);
+    expect(cfg.agent?.foundry?.mode).toBe('all');
 
     expect(cfg.agent?.['foundry-librarian']?.tools?.['palantir-mcp_list_datasets']).toBe(true);
     expect(cfg.agent?.['foundry-librarian']?.tools?.['palantir-mcp_get_dataset']).toBe(true);
-    expect(cfg.agent?.['foundry-librarian']?.tools?.['palantir-mcp_create_thing']).toBe(false);
+    expect(cfg.agent?.['foundry-librarian']?.tools?.['palantir-mcp_create_thing']).toBe(true);
 
     expect(cfg.agent?.foundry?.tools?.['palantir-mcp_list_datasets']).toBe(true);
     expect(cfg.agent?.foundry?.tools?.['palantir-mcp_get_dataset']).toBe(true);
-    expect(cfg.agent?.foundry?.tools?.['palantir-mcp_create_thing']).toBe(false);
+    expect(cfg.agent?.foundry?.tools?.['palantir-mcp_create_thing']).toBe(true);
+  });
+
+  it('preserves explicit foundry mode when already set', async () => {
+    vi.spyOn(mcpClient, 'listPalantirMcpTools').mockResolvedValue(['list_datasets']);
+
+    const cfgPath = path.join(tmpDir, 'opencode.jsonc');
+    const existing = {
+      agent: {
+        foundry: {
+          mode: 'subagent',
+        },
+      },
+    };
+    fs.writeFileSync(cfgPath, JSON.stringify(existing, null, 2));
+
+    await runSetup('https://example.palantirfoundry.com');
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8')) as OpencodeConfig;
+
+    expect(cfg.agent?.foundry?.mode).toBe('subagent');
+  });
+
+  it('uses profile override when provided and reports detected profile', async () => {
+    vi.spyOn(mcpClient, 'listPalantirMcpTools').mockResolvedValue([
+      'connect_to_dev_console_app',
+      'delete_foundry_object_type',
+    ]);
+
+    fs.mkdirSync(path.join(tmpDir, 'transforms'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'transforms', 't.py'), 'def transform():\n  return 1\n');
+
+    const result = await runSetup(
+      'https://example.palantirfoundry.com --profile compute_modules_ts'
+    );
+
+    expect(result.text).toContain('Selected profile: compute_modules_ts');
+    expect(result.text).toContain('Profile source: override (--profile)');
+    expect(result.text).toContain('Detected profile: pipelines_transforms');
+
+    const cfg = JSON.parse(
+      fs.readFileSync(path.join(tmpDir, 'opencode.jsonc'), 'utf8')
+    ) as OpencodeConfig;
+    expect(cfg.agent?.foundry?.description).toContain('Profile: compute_modules_ts');
+
+    // Broad defaults keep compute click-ops enabled by default.
+    expect(cfg.agent?.foundry?.tools?.['palantir-mcp_connect_to_dev_console_app']).toBe(true);
+    // Hard destructive deny list still applies.
+    expect(cfg.agent?.foundry?.tools?.['palantir-mcp_delete_foundry_object_type']).toBe(false);
   });
 
   it('is idempotent for repeated runs', async () => {

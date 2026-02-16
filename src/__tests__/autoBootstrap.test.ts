@@ -13,6 +13,7 @@ type McpServerConfig = {
 };
 
 type AgentConfig = {
+  mode?: string;
   tools?: Record<string, unknown>;
 };
 
@@ -78,10 +79,12 @@ describe('autoBootstrapPalantirMcpIfConfigured', () => {
 
     expect(cfg.agent?.['foundry-librarian']).toBeTruthy();
     expect(cfg.agent?.foundry).toBeTruthy();
+    expect(cfg.agent?.['foundry-librarian']?.mode).toBe('subagent');
+    expect(cfg.agent?.foundry?.mode).toBe('all');
 
     expect(cfg.agent?.['foundry-librarian']?.tools?.['palantir-mcp_list_datasets']).toBe(true);
     expect(cfg.agent?.['foundry-librarian']?.tools?.['palantir-mcp_get_dataset']).toBe(true);
-    expect(cfg.agent?.['foundry-librarian']?.tools?.['palantir-mcp_create_thing']).toBe(false);
+    expect(cfg.agent?.['foundry-librarian']?.tools?.['palantir-mcp_create_thing']).toBe(true);
   });
 
   it('is idempotent for repeated runs', async () => {
@@ -129,5 +132,40 @@ describe('autoBootstrapPalantirMcpIfConfigured', () => {
     const spy = vi.spyOn(mcpClient, 'listPalantirMcpTools');
     await autoBootstrapPalantirMcpIfConfigured(tmpDir);
     expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('preserves explicit foundry mode during bootstrap patching', async () => {
+    process.env.FOUNDRY_TOKEN = 'TEST_TOKEN';
+    process.env.FOUNDRY_URL = 'https://example.palantirfoundry.com';
+
+    vi.spyOn(mcpClient, 'listPalantirMcpTools').mockResolvedValue(['list_datasets']);
+
+    const cfgPath: string = path.join(tmpDir, 'opencode.jsonc');
+    const existing: OpencodeConfig = {
+      mcp: {
+        'palantir-mcp': {
+          type: 'local',
+          command: [
+            'npx',
+            '-y',
+            'palantir-mcp',
+            '--foundry-api-url',
+            'https://example.palantirfoundry.com',
+          ],
+          environment: { FOUNDRY_TOKEN: '{env:FOUNDRY_TOKEN}' },
+        },
+      },
+      agent: {
+        foundry: {
+          mode: 'subagent',
+        },
+      },
+    };
+    fs.writeFileSync(cfgPath, JSON.stringify(existing, null, 2));
+
+    await autoBootstrapPalantirMcpIfConfigured(tmpDir);
+
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8')) as OpencodeConfig;
+    expect(cfg.agent?.foundry?.mode).toBe('subagent');
   });
 });

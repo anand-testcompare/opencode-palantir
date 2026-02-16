@@ -242,7 +242,9 @@ function ensureAgentDefaults(
       : 'Foundry execution agent (uses only enabled palantir-mcp tools)';
 
   const mode: unknown = agent['mode'];
-  if (typeof mode !== 'string') agent['mode'] = 'subagent';
+  if (typeof mode !== 'string') {
+    agent['mode'] = agentName === 'foundry' ? 'all' : 'subagent';
+  }
 
   if (typeof agent['hidden'] !== 'boolean') agent['hidden'] = false;
 
