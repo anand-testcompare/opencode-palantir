@@ -10,31 +10,58 @@ import {
   closeDatabase,
   type ParquetStore,
 } from './docs/db.ts';
+import type { FetchProgressEvent } from './docs/fetch.ts';
 import { fetchAllDocs } from './docs/fetch.ts';
+import { ensureDocsParquet, type EnsureDocsParquetEvent } from './docs/snapshot.ts';
 import {
   autoBootstrapPalantirMcpIfConfigured,
   rescanPalantirMcpTools,
   setupPalantirMcp,
 } from './palantir-mcp/commands.ts';
 
-const NO_DB_MESSAGE =
-  'Documentation database not found. Run /refresh-docs to download Palantir Foundry documentation.';
-
 const plugin: Plugin = async (input) => {
   const dbPath = path.join(input.worktree, 'data', 'docs.parquet');
   let dbInstance: ParquetStore | null = null;
-  let autoBootstrapStarted: boolean = false;
+  let dbInitPromise: Promise<ParquetStore> | null = null;
+  let autoBootstrapMcpStarted: boolean = false;
+  let autoBootstrapDocsStarted: boolean = false;
 
   type CommandOutput = { parts: unknown[] };
   type DocScope = 'foundry' | 'apollo' | 'gotham' | 'all';
+
+  function formatError(err: unknown): string {
+    return err instanceof Error ? err.toString() : String(err);
+  }
+
+  function formatBytes(bytes: number): string {
+    if (!Number.isFinite(bytes) || bytes < 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let value = bytes;
+    let index = 0;
+    while (value >= 1024 && index < units.length - 1) {
+      value /= 1024;
+      index += 1;
+    }
+    const decimals = value >= 10 || index === 0 ? 0 : 1;
+    return `${value.toFixed(decimals)} ${units[index]}`;
+  }
 
   function ensureCommandDefinitions(cfg: Config): void {
     if (!cfg.command) cfg.command = {};
 
     if (!cfg.command['refresh-docs']) {
       cfg.command['refresh-docs'] = {
-        template: 'Refresh Palantir documentation database.',
-        description: 'Download Palantir docs and write data/docs.parquet (local).',
+        template: 'Refresh Palantir docs snapshot (recommended).',
+        description:
+          'Force refresh data/docs.parquet from a prebuilt snapshot (download/copy; no rescrape).',
+      };
+    }
+
+    if (!cfg.command['refresh-docs-rescrape']) {
+      cfg.command['refresh-docs-rescrape'] = {
+        template: 'Refresh docs by live rescrape (unsafe/experimental).',
+        description:
+          'Explicit fallback: rescrape palantir.com docs and rebuild data/docs.parquet. Slower and less reliable than /refresh-docs.',
       };
     }
 
@@ -115,31 +142,131 @@ const plugin: Plugin = async (input) => {
     cfg.agent.foundry = foundry;
   }
 
-  function maybeStartAutoBootstrap(): void {
-    if (autoBootstrapStarted) return;
+  function maybeStartAutoBootstrapMcp(): void {
+    if (autoBootstrapMcpStarted) return;
 
     const token: string | undefined = process.env.FOUNDRY_TOKEN;
     const url: string | undefined = process.env.FOUNDRY_URL;
     if (!token || token.trim().length === 0) return;
     if (!url || url.trim().length === 0) return;
 
-    autoBootstrapStarted = true;
+    autoBootstrapMcpStarted = true;
     void autoBootstrapPalantirMcpIfConfigured(input.worktree);
   }
 
-  async function getDb(): Promise<ParquetStore> {
-    if (!dbInstance) {
-      dbInstance = await createDatabase(dbPath);
-    }
-    return dbInstance;
+  function maybeStartAutoBootstrapDocs(): void {
+    if (autoBootstrapDocsStarted) return;
+    autoBootstrapDocsStarted = true;
+    void ensureDocsAvailable().catch(() => {
+      // Best-effort startup bootstrap only. Tool/command paths provide actionable errors.
+    });
   }
 
-  async function dbExists(): Promise<boolean> {
-    return Bun.file(dbPath).exists();
+  function resetDb(): void {
+    if (dbInstance) closeDatabase(dbInstance);
+    dbInstance = null;
+    dbInitPromise = null;
+  }
+
+  async function getDb(): Promise<ParquetStore> {
+    if (dbInstance) return dbInstance;
+    if (dbInitPromise) return dbInitPromise;
+
+    dbInitPromise = createDatabase(dbPath)
+      .then((created) => {
+        dbInstance = created;
+        return created;
+      })
+      .finally(() => {
+        dbInitPromise = null;
+      });
+    return dbInitPromise;
   }
 
   function pushText(output: CommandOutput, text: string): void {
     output.parts.push({ type: 'text', text });
+  }
+
+  function formatSnapshotFailure(err: unknown): string {
+    return [
+      '[ERROR] Unable to obtain Palantir docs snapshot.',
+      '',
+      `Reason: ${formatError(err)}`,
+      '',
+      'Next steps:',
+      '- Retry /refresh-docs (recommended prebuilt snapshot path).',
+      '- If snapshot download is blocked, run /refresh-docs-rescrape (unsafe/experimental).',
+    ].join('\n');
+  }
+
+  function formatSnapshotRefreshEvent(event: EnsureDocsParquetEvent): string | null {
+    if (event.type === 'skip-existing')
+      return `snapshot_status=already_present bytes=${event.bytes}`;
+    if (event.type === 'download-start') return `download_attempt url=${event.url}`;
+    if (event.type === 'download-failed')
+      return `download_failed url=${event.url} error=${event.error}`;
+    if (event.type === 'download-success')
+      return `download_succeeded url=${event.url} bytes=${event.bytes}`;
+    if (event.type === 'copy-start') return `copy_attempt source=${event.sourcePath}`;
+    if (event.type === 'copy-success')
+      return `copy_succeeded source=${event.sourcePath} bytes=${event.bytes}`;
+    return null;
+  }
+
+  async function ensureDocsAvailable(
+    options: {
+      force?: boolean;
+      onEvent?: (event: EnsureDocsParquetEvent) => void;
+    } = {}
+  ) {
+    return ensureDocsParquet({
+      dbPath,
+      force: options.force === true,
+      pluginDirectory: input.directory,
+      onEvent: options.onEvent,
+    });
+  }
+
+  async function ensureDocsReadyForTool(): Promise<string | null> {
+    try {
+      await ensureDocsAvailable();
+      return null;
+    } catch (err) {
+      return formatSnapshotFailure(err);
+    }
+  }
+
+  function formatRescrapeFailure(err: unknown): string {
+    return [
+      '[ERROR] /refresh-docs-rescrape failed.',
+      '',
+      `Reason: ${formatError(err)}`,
+      '',
+      'Try /refresh-docs for the recommended prebuilt snapshot flow.',
+    ].join('\n');
+  }
+
+  function formatRescrapeProgressEvent(
+    event: FetchProgressEvent,
+    progressLines: string[],
+    failureSamples: string[]
+  ): void {
+    if (event.type === 'discovered') {
+      progressLines.push(`discovered_pages=${event.totalPages}`);
+      return;
+    }
+
+    if (event.type === 'progress') {
+      progressLines.push(`processed_pages=${event.processedPages}/${event.totalPages}`);
+      return;
+    }
+
+    if (event.type === 'page-failed') {
+      if (failureSamples.length < 5) {
+        failureSamples.push(`url=${event.url} error=${event.error}`);
+      }
+      return;
+    }
   }
 
   function toPathname(inputUrl: string): string {
@@ -260,7 +387,8 @@ const plugin: Plugin = async (input) => {
     config: async (cfg) => {
       ensureCommandDefinitions(cfg);
       ensureAgentDefinitions(cfg);
-      maybeStartAutoBootstrap();
+      maybeStartAutoBootstrapMcp();
+      maybeStartAutoBootstrapDocs();
     },
 
     tool: {
@@ -284,7 +412,8 @@ const plugin: Plugin = async (input) => {
             ),
         },
         async execute(args) {
-          if (!(await dbExists())) return NO_DB_MESSAGE;
+          const docsError = await ensureDocsReadyForTool();
+          if (docsError) return docsError;
 
           const scope: DocScope | null = parseScope((args as Record<string, unknown>).scope);
           if (!scope) {
@@ -388,7 +517,8 @@ const plugin: Plugin = async (input) => {
             .describe('Optional query to filter/rank results by title/URL (case-insensitive).'),
         },
         async execute(args) {
-          if (!(await dbExists())) return NO_DB_MESSAGE;
+          const docsError = await ensureDocsReadyForTool();
+          if (docsError) return docsError;
 
           const scope: DocScope | null = parseScope((args as Record<string, unknown>).scope);
           if (!scope) {
@@ -480,17 +610,77 @@ const plugin: Plugin = async (input) => {
 
     'command.execute.before': async (hookInput, output) => {
       if (hookInput.command === 'refresh-docs') {
-        const result = await fetchAllDocs(dbPath);
+        const progressLines: string[] = [];
+        try {
+          const result = await ensureDocsAvailable({
+            force: true,
+            onEvent: (event) => {
+              const line = formatSnapshotRefreshEvent(event);
+              if (line) progressLines.push(line);
+            },
+          });
 
-        if (dbInstance) {
-          closeDatabase(dbInstance);
-          dbInstance = null;
+          resetDb();
+          const db = await getDb();
+          const indexedPages = getAllPages(db).length;
+
+          pushText(
+            output,
+            [
+              'refresh-docs complete (recommended snapshot path).',
+              '',
+              ...progressLines.map((line) => `- ${line}`),
+              ...(progressLines.length > 0 ? [''] : []),
+              `snapshot_source=${result.source}`,
+              result.downloadUrl ? `snapshot_url=${result.downloadUrl}` : null,
+              `snapshot_bytes=${result.bytes} (${formatBytes(result.bytes)})`,
+              `indexed_pages=${indexedPages}`,
+            ]
+              .filter((line): line is string => !!line)
+              .join('\n')
+          );
+        } catch (err) {
+          pushText(output, formatSnapshotFailure(err));
         }
+        return;
+      }
 
-        pushText(
-          output,
-          `Refreshed documentation: ${result.fetchedPages}/${result.totalPages} pages fetched. ${result.failedUrls.length} failures.`
-        );
+      if (hookInput.command === 'refresh-docs-rescrape') {
+        const progressLines: string[] = [];
+        const failureSamples: string[] = [];
+        try {
+          const result = await fetchAllDocs(dbPath, {
+            progressEvery: 250,
+            onProgress: (event) => {
+              formatRescrapeProgressEvent(event, progressLines, failureSamples);
+            },
+          });
+
+          resetDb();
+          const db = await getDb();
+          const indexedPages = getAllPages(db).length;
+
+          pushText(
+            output,
+            [
+              'refresh-docs-rescrape complete (unsafe/experimental).',
+              '',
+              'Warning: this command live-scrapes palantir.com and is slower/less reliable than /refresh-docs.',
+              '',
+              ...progressLines.map((line) => `- ${line}`),
+              ...(progressLines.length > 0 ? [''] : []),
+              `total_pages=${result.totalPages}`,
+              `fetched_pages=${result.fetchedPages}`,
+              `failed_pages=${result.failedUrls.length}`,
+              `indexed_pages=${indexedPages}`,
+              ...(failureSamples.length > 0
+                ? ['', 'failure_samples:', ...failureSamples.map((line) => `- ${line}`)]
+                : []),
+            ].join('\n')
+          );
+        } catch (err) {
+          pushText(output, formatRescrapeFailure(err));
+        }
         return;
       }
 

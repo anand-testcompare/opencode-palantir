@@ -228,9 +228,7 @@ describe('Pagefind Fetcher', () => {
         })
       );
 
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       await fetchAllDocs(tmpParquetPath());
-      consoleSpy.mockRestore();
 
       expect(maxConcurrent).toBeLessThanOrEqual(DEFAULT_CONCURRENCY);
       expect(maxConcurrent).toBeGreaterThan(1);
@@ -291,7 +289,7 @@ describe('Pagefind Fetcher', () => {
   });
 
   describe('partial failure handling', () => {
-    it('failed pages are logged and skipped, not thrown', async () => {
+    it('failed pages are reported and skipped, not thrown', async () => {
       const entryResponse = {
         version: '1.0.0',
         languages: { en: { hash: 'testhash', wasm: 'w', page_count: 3 } },
@@ -330,14 +328,19 @@ describe('Pagefind Fetcher', () => {
       );
 
       const outPath = tmpParquetPath();
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      const result = await fetchAllDocs(outPath);
-      consoleSpy.mockRestore();
+      const progressEvents: string[] = [];
+      const result = await fetchAllDocs(outPath, {
+        onProgress: (event) => {
+          progressEvents.push(event.type);
+        },
+      });
 
       expect(result.totalPages).toBe(3);
       expect(result.fetchedPages).toBe(2);
       expect(result.failedUrls).toHaveLength(1);
       expect(result.failedUrls[0]).toContain('bad_1');
+      expect(progressEvents).toContain('page-failed');
+      expect(progressEvents).toContain('completed');
     });
   });
 
@@ -391,14 +394,59 @@ describe('Pagefind Fetcher', () => {
       );
 
       const outPath = tmpParquetPath();
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       const result = await fetchAllDocs(outPath);
-      consoleSpy.mockRestore();
 
       expect(result.totalPages).toBe(2);
       expect(result.fetchedPages).toBe(2);
       expect(result.failedUrls).toHaveLength(0);
       expect(result.dbPath).toBe(outPath);
+    });
+
+    it('never uses console logging and emits structured progress callbacks', async () => {
+      const entryResponse = {
+        version: '1.0.0',
+        languages: { en: { hash: 'lang_abc', wasm: 'w', page_count: 2 } },
+      };
+      const pages = [
+        { page_hash: 'page_x', word_count: 50 },
+        { page_hash: 'page_y', word_count: 75 },
+      ];
+      const metaBuf = makeMetaBuffer(pages);
+      const fragment = {
+        url: '/docs/foundry/alpha',
+        content: 'Alpha content',
+        meta: { title: 'Alpha' },
+        word_count: 50,
+        filters: {},
+        anchors: [],
+      };
+      const fragBuf = makeFragmentBuffer(fragment);
+
+      setMockFetch(
+        vi.fn().mockImplementation(async (url: string) => {
+          if (url.includes('pagefind-entry.json')) {
+            return { ok: true, json: () => Promise.resolve(entryResponse) };
+          }
+          if (url.includes('pf_meta')) {
+            return { ok: true, arrayBuffer: () => Promise.resolve(toArrayBuffer(metaBuf)) };
+          }
+          return { ok: true, arrayBuffer: () => Promise.resolve(toArrayBuffer(fragBuf)) };
+        })
+      );
+
+      const events: string[] = [];
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      await fetchAllDocs(tmpParquetPath(), {
+        progressEvery: 1,
+        onProgress: (event) => {
+          events.push(event.type);
+        },
+      });
+
+      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(events[0]).toBe('discovered');
+      expect(events).toContain('progress');
+      expect(events).toContain('completed');
     });
   });
 });

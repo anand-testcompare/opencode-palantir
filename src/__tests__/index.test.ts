@@ -3,14 +3,27 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { writeParquet } from '../docs/write-parquet.ts';
-import * as fetchModule from '../docs/fetch.ts';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const plugin = (await import('../index.ts')).default as any;
+type OutputPart = { type: 'text'; text: string };
+type PluginHooks = {
+  tool: Record<
+    string,
+    {
+      description: string;
+      args: Record<string, unknown>;
+      execute: (args: Record<string, unknown>, context: Record<string, unknown>) => Promise<string>;
+    }
+  >;
+  'command.execute.before': (
+    input: { command: string; sessionID: string; arguments: string },
+    output: { parts: OutputPart[] }
+  ) => Promise<void>;
+};
 
 describe('Plugin', () => {
   let tmpDir: string;
   let dbPath: string;
+  let pluginImportCounter = 0;
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plugin-test-'));
@@ -19,6 +32,7 @@ describe('Plugin', () => {
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
   });
 
   async function seedDatabase(): Promise<void> {
@@ -107,8 +121,18 @@ describe('Plugin', () => {
     await writeParquet(rows, dbPath);
   }
 
+  async function createHooks(): Promise<PluginHooks> {
+    // Re-import plugin per test so test-local spies are captured at import time.
+    pluginImportCounter += 1;
+    const importNonce = `test=${pluginImportCounter}`;
+    const pluginLocal = (await import(`../index.ts?${importNonce}`)).default as (context: {
+      worktree: string;
+    }) => Promise<PluginHooks>;
+    return pluginLocal({ worktree: tmpDir });
+  }
+
   it('returns Hooks with tool property containing exactly 2 tools', async () => {
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
 
     expect(hooks.tool).toBeDefined();
     const toolNames = Object.keys(hooks.tool);
@@ -118,7 +142,7 @@ describe('Plugin', () => {
   });
 
   it('get_doc_page tool has description and url arg schema', async () => {
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
     const getDocPage = hooks.tool['get_doc_page'];
 
     expect(getDocPage.description).toBeTruthy();
@@ -129,7 +153,7 @@ describe('Plugin', () => {
   });
 
   it('list_all_docs tool has description and no required args', async () => {
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
     const listAllDocs = hooks.tool['list_all_docs'];
 
     expect(listAllDocs.description).toBeTruthy();
@@ -140,7 +164,7 @@ describe('Plugin', () => {
 
   it('get_doc_page execute returns page content when DB exists', async () => {
     await seedDatabase();
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
 
     const result = await hooks.tool['get_doc_page'].execute(
       { url: '/foundry/ontology/overview/' },
@@ -152,7 +176,7 @@ describe('Plugin', () => {
 
   it('get_doc_page execute returns not-found message for non-existent URL', async () => {
     await seedDatabase();
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
 
     const result = await hooks.tool['get_doc_page'].execute({ url: '/docs/nonexistent/' }, {});
 
@@ -162,7 +186,7 @@ describe('Plugin', () => {
 
   it('list_all_docs execute returns formatted list of pages', async () => {
     await seedDatabase();
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
 
     const result = await hooks.tool['list_all_docs'].execute({}, {});
 
@@ -176,7 +200,7 @@ describe('Plugin', () => {
 
   it('list_all_docs defaults to bounded results and foundry scope', async () => {
     await seedDatabaseMany();
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
 
     const result = await hooks.tool['list_all_docs'].execute({}, {});
 
@@ -192,7 +216,7 @@ describe('Plugin', () => {
 
   it('list_all_docs pagination is deterministic (sorted by url)', async () => {
     await seedDatabaseMany();
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
 
     const first = await hooks.tool['list_all_docs'].execute(
       { scope: 'all', limit: 1, offset: 0 },
@@ -222,7 +246,7 @@ describe('Plugin', () => {
 
   it('list_all_docs scope=all includes non-foundry URLs', async () => {
     await seedDatabaseMany();
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
 
     const result = await hooks.tool['list_all_docs'].execute(
       { scope: 'all', limit: 5, offset: 0 },
@@ -235,7 +259,7 @@ describe('Plugin', () => {
 
   it('list_all_docs query filters and ranks results', async () => {
     await seedDatabaseMany();
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
 
     const result = await hooks.tool['list_all_docs'].execute(
       { query: 'compute modules', scope: 'foundry', limit: 10, offset: 0 },
@@ -249,7 +273,7 @@ describe('Plugin', () => {
 
   it('get_doc_page accepts common URL variants (missing /docs prefix, missing trailing slash)', async () => {
     await seedDatabaseMany();
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
 
     const result = await hooks.tool['get_doc_page'].execute(
       { url: '/docs/foundry/compute-modules/overview' },
@@ -261,7 +285,7 @@ describe('Plugin', () => {
 
   it('get_doc_page can resolve a page from a free-text query', async () => {
     await seedDatabaseMany();
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
 
     const result = await hooks.tool['get_doc_page'].execute(
       { query: 'compute modules', scope: 'foundry' },
@@ -275,7 +299,7 @@ describe('Plugin', () => {
 
   it('list_all_docs invalid args fail safely', async () => {
     await seedDatabaseMany();
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
 
     const badLimit = await hooks.tool['list_all_docs'].execute({ limit: 0 } as never, {});
     expect(badLimit).toContain('[ERROR]');
@@ -289,47 +313,117 @@ describe('Plugin', () => {
     expect(badScope).toContain('[ERROR]');
   });
 
-  it('tools return helpful message when docs.db does not exist', async () => {
-    const hooks = await plugin({ worktree: tmpDir });
+  it('auto-bootstrap path makes doc tools work when snapshot is initially missing', async () => {
+    const snapshotModuleLocal = await import('../docs/snapshot.ts');
+    vi.spyOn(snapshotModuleLocal, 'ensureDocsParquet').mockImplementation(async () => {
+      await seedDatabase();
+      return {
+        dbPath,
+        changed: true,
+        source: 'download',
+        bytes: 4096,
+      };
+    });
 
-    const getResult = await hooks.tool['get_doc_page'].execute({ url: '/docs/anything/' }, {});
-    expect(getResult).toContain('Documentation database not found');
-    expect(getResult).toContain('/refresh-docs');
+    const hooks = await createHooks();
+
+    const getResult = await hooks.tool['get_doc_page'].execute(
+      { url: '/foundry/ontology/overview/' },
+      {}
+    );
+    expect(getResult).toContain('ontology overview content');
 
     const listResult = await hooks.tool['list_all_docs'].execute({}, {});
-    expect(listResult).toContain('Documentation database not found');
-    expect(listResult).toContain('/refresh-docs');
+    expect(listResult).toContain('Available Palantir Documentation Pages');
   });
 
-  it('command.execute.before hook triggers fetchAllDocs for /refresh-docs', async () => {
-    const spy = vi.spyOn(fetchModule, 'fetchAllDocs').mockResolvedValue({
+  it('tools surface actionable snapshot errors when bootstrap fails', async () => {
+    const snapshotModuleLocal = await import('../docs/snapshot.ts');
+    vi.spyOn(snapshotModuleLocal, 'ensureDocsParquet').mockRejectedValue(
+      new Error('network blocked')
+    );
+
+    const hooks = await createHooks();
+
+    const getResult = await hooks.tool['get_doc_page'].execute({ url: '/docs/anything/' }, {});
+    expect(getResult).toContain('Unable to obtain Palantir docs snapshot');
+    expect(getResult).toContain('/refresh-docs');
+    expect(getResult).toContain('/refresh-docs-rescrape');
+
+    const listResult = await hooks.tool['list_all_docs'].execute({}, {});
+    expect(listResult).toContain('Unable to obtain Palantir docs snapshot');
+    expect(listResult).toContain('/refresh-docs');
+    expect(listResult).toContain('/refresh-docs-rescrape');
+  });
+
+  it('command.execute.before hook refreshes snapshot for /refresh-docs', async () => {
+    const snapshotModuleLocal = await import('../docs/snapshot.ts');
+    const ensureSpy = vi
+      .spyOn(snapshotModuleLocal, 'ensureDocsParquet')
+      .mockImplementation(async () => {
+        await seedDatabase();
+        return {
+          dbPath,
+          changed: true,
+          source: 'download',
+          bytes: 2048,
+          downloadUrl: 'https://example.test/docs.parquet',
+        };
+      });
+
+    const hooks = await createHooks();
+    const hookFn = hooks['command.execute.before'];
+    expect(hookFn).toBeDefined();
+
+    const output: { parts: OutputPart[] } = { parts: [] };
+    await hookFn({ command: 'refresh-docs', sessionID: 'test-session', arguments: '' }, output);
+
+    expect(ensureSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dbPath,
+        force: true,
+      })
+    );
+    expect(output.parts).toHaveLength(1);
+    expect(output.parts[0].type).toBe('text');
+    expect(output.parts[0].text).toContain('snapshot_source=download');
+    expect(output.parts[0].text).toContain('indexed_pages=2');
+    expect(output.parts[0].text).toContain('snapshot_bytes=2048');
+  });
+
+  it('command.execute.before hook runs unsafe rescrape command with warning', async () => {
+    await seedDatabase();
+    const fetchModuleLocal = await import('../docs/fetch.ts');
+    const spy = vi.spyOn(fetchModuleLocal, 'fetchAllDocs').mockResolvedValue({
       totalPages: 100,
       fetchedPages: 98,
       failedUrls: ['url1', 'url2'],
       dbPath,
     });
 
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
     const hookFn = hooks['command.execute.before'];
     expect(hookFn).toBeDefined();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const output = { parts: [] as any[] };
-    await hookFn({ command: 'refresh-docs', sessionID: 'test-session', arguments: '' }, output);
+    const output: { parts: OutputPart[] } = { parts: [] };
+    await hookFn(
+      { command: 'refresh-docs-rescrape', sessionID: 'test-session', arguments: '' },
+      output
+    );
 
-    expect(spy).toHaveBeenCalledWith(dbPath);
+    expect(spy).toHaveBeenCalled();
     expect(output.parts).toHaveLength(1);
     expect(output.parts[0].type).toBe('text');
-    expect(output.parts[0].text).toContain('98');
-    expect(output.parts[0].text).toContain('100');
-    spy.mockRestore();
+    expect(output.parts[0].text).toContain('unsafe/experimental');
+    expect(output.parts[0].text).toContain('fetched_pages=98');
+    expect(output.parts[0].text).toContain('failed_pages=2');
   });
 
   it('command.execute.before hook ignores non-refresh commands', async () => {
-    const spy = vi.spyOn(fetchModule, 'fetchAllDocs');
-    const hooks = await plugin({ worktree: tmpDir });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const output = { parts: [] as any[] };
+    const fetchModuleLocal = await import('../docs/fetch.ts');
+    const spy = vi.spyOn(fetchModuleLocal, 'fetchAllDocs');
+    const hooks = await createHooks();
+    const output: { parts: OutputPart[] } = { parts: [] };
 
     await hooks['command.execute.before'](
       { command: 'other-command', sessionID: 'test-session', arguments: '' },
@@ -343,7 +437,7 @@ describe('Plugin', () => {
 
   it('lazily opens database only on first tool call', async () => {
     await seedDatabase();
-    const hooks = await plugin({ worktree: tmpDir });
+    const hooks = await createHooks();
 
     // DB not opened yet — get_doc_page works, proving lazy init
     const result = await hooks.tool['get_doc_page'].execute(
