@@ -94,7 +94,7 @@ function setupUsageText(): string {
     `Valid profile IDs: ${formatProfileChoices()}`,
     '',
     'Example:',
-    '  /setup-palantir-mcp https://23dimethyl.usw-3.palantirfoundry.com --profile compute_modules_ts',
+    '  /setup-palantir-mcp https://totally-not-skynet.palantirfoundry.com --profile compute_modules_ts',
   ].join('\n');
 }
 
