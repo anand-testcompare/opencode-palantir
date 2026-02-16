@@ -135,7 +135,7 @@ The docs DB is a local file:
 
 - `data/docs.parquet` (in your repo root)
 
-### First run behavior
+### First-run behavior
 
 On startup and tool usage, the plugin automatically ensures `data/docs.parquet` exists by using a
 prebuilt snapshot (download/copy). In most repos, docs tools should work without any manual setup.

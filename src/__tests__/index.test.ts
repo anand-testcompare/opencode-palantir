@@ -8,6 +8,7 @@ import * as snapshotModule from '../docs/snapshot.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const plugin = (await import('../index.ts')).default as any;
+type OutputPart = { type: 'text'; text: string };
 
 describe('Plugin', () => {
   let tmpDir: string;
@@ -346,8 +347,7 @@ describe('Plugin', () => {
     const hookFn = hooks['command.execute.before'];
     expect(hookFn).toBeDefined();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const output = { parts: [] as any[] };
+    const output: { parts: OutputPart[] } = { parts: [] };
     await hookFn({ command: 'refresh-docs', sessionID: 'test-session', arguments: '' }, output);
 
     expect(ensureSpy).toHaveBeenCalledWith(
@@ -376,8 +376,7 @@ describe('Plugin', () => {
     const hookFn = hooks['command.execute.before'];
     expect(hookFn).toBeDefined();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const output = { parts: [] as any[] };
+    const output: { parts: OutputPart[] } = { parts: [] };
     await hookFn(
       { command: 'refresh-docs-rescrape', sessionID: 'test-session', arguments: '' },
       output
@@ -394,8 +393,7 @@ describe('Plugin', () => {
   it('command.execute.before hook ignores non-refresh commands', async () => {
     const spy = vi.spyOn(fetchModule, 'fetchAllDocs');
     const hooks = await plugin({ worktree: tmpDir });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const output = { parts: [] as any[] };
+    const output: { parts: OutputPart[] } = { parts: [] };
 
     await hooks['command.execute.before'](
       { command: 'other-command', sessionID: 'test-session', arguments: '' },

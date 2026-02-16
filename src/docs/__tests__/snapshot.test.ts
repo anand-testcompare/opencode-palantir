@@ -18,12 +18,16 @@ describe('ensureDocsParquet', () => {
   let tmpDir: string;
   let dbPath: string;
   let pluginDir: string;
+  let priorSnapshotUrl: string | undefined;
+  let priorSnapshotUrls: string | undefined;
   const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-snapshot-test-'));
     dbPath = path.join(tmpDir, 'data', 'docs.parquet');
     pluginDir = path.join(tmpDir, 'plugin');
+    priorSnapshotUrl = process.env.OPENCODE_PALANTIR_DOCS_SNAPSHOT_URL;
+    priorSnapshotUrls = process.env.OPENCODE_PALANTIR_DOCS_SNAPSHOT_URLS;
     delete process.env.OPENCODE_PALANTIR_DOCS_SNAPSHOT_URL;
     delete process.env.OPENCODE_PALANTIR_DOCS_SNAPSHOT_URLS;
   });
@@ -31,6 +35,10 @@ describe('ensureDocsParquet', () => {
   afterEach(() => {
     globalThis.fetch = originalFetch;
     vi.restoreAllMocks();
+    if (priorSnapshotUrl === undefined) delete process.env.OPENCODE_PALANTIR_DOCS_SNAPSHOT_URL;
+    else process.env.OPENCODE_PALANTIR_DOCS_SNAPSHOT_URL = priorSnapshotUrl;
+    if (priorSnapshotUrls === undefined) delete process.env.OPENCODE_PALANTIR_DOCS_SNAPSHOT_URLS;
+    else process.env.OPENCODE_PALANTIR_DOCS_SNAPSHOT_URLS = priorSnapshotUrls;
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
