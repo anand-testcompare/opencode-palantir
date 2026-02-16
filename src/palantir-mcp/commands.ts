@@ -94,7 +94,7 @@ function setupUsageText(): string {
     `Valid profile IDs: ${formatProfileChoices()}`,
     '',
     'Example:',
-    '  /setup-palantir-mcp https://who-let-the-dag-out.palantirfoundry.com --profile compute_modules_ts',
+    '  /setup-palantir-mcp https://buschlightdid911.usw-3.palantirfoundry.com --profile compute_modules_ts',
   ].join('\n');
 }
 
