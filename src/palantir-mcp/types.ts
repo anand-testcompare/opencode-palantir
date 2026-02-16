@@ -18,12 +18,8 @@ export const PROFILE_IDS: readonly ProfileId[] = [
 ];
 
 export function parseProfileId(value: unknown): ProfileId | null {
-  if (value === 'compute_modules') return value;
-  if (value === 'compute_modules_ts') return value;
-  if (value === 'compute_modules_py') return value;
-  if (value === 'pipelines_transforms') return value;
-  if (value === 'osdk_functions_ts') return value;
-  if (value === 'all') return value;
-  if (value === 'unknown') return value;
+  for (const profileId of PROFILE_IDS) {
+    if (value === profileId) return profileId;
+  }
   return null;
 }

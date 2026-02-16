@@ -68,16 +68,22 @@ const plugin: Plugin = async (input) => {
     if (!cfg.command['setup-palantir-mcp']) {
       cfg.command['setup-palantir-mcp'] = {
         template: 'Set up palantir-mcp for this repo.',
-        description:
-          'Guided MCP setup for Foundry. Usage: /setup-palantir-mcp <foundry_api_url> [--profile <profile_id>]. Requires FOUNDRY_TOKEN for tool discovery.',
+        description: [
+          'Guided MCP setup for Foundry.',
+          'Usage: /setup-palantir-mcp <foundry_api_url> [--profile <profile_id>].',
+          'Requires FOUNDRY_TOKEN for tool discovery.',
+        ].join(' '),
       };
     }
 
     if (!cfg.command['rescan-palantir-mcp-tools']) {
       cfg.command['rescan-palantir-mcp-tools'] = {
         template: 'Re-scan palantir-mcp tools and patch tool gating.',
-        description:
-          'Re-discovers the palantir-mcp tool list and adds missing palantir-mcp_* toggles (does not overwrite existing toggles). Usage: /rescan-palantir-mcp-tools [--profile <profile_id>]. Requires FOUNDRY_TOKEN.',
+        description: [
+          'Re-discovers the palantir-mcp tool list and adds missing palantir-mcp_* toggles',
+          '(does not overwrite existing toggles).',
+          'Usage: /rescan-palantir-mcp-tools [--profile <profile_id>]. Requires FOUNDRY_TOKEN.',
+        ].join(' '),
       };
     }
   }
