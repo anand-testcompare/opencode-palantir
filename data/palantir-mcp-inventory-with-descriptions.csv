@@ -1,0 +1,274 @@
+category,group,name,http_method,description
+mcp_tool,palantir-mcp,palantir-mcp_build_datasets,,"Submit dataset build requests for a repository, branch, and commit."
+mcp_tool,palantir-mcp,palantir-mcp_get_build_status,,"Retrieve CI or dataset build status for builds, tags, or branches."
+mcp_tool,palantir-mcp,palantir-mcp_search_dataset_builds,,"Search historical dataset builds using filters like status, branch, and time."
+mcp_tool,palantir-mcp,palantir-mcp_get_job_status,,"Get detailed status, logs, inputs, outputs, and definition for a job."
+mcp_tool,palantir-mcp,palantir-mcp_get_foundry_ontology_rid,,"Resolve ontology RID from an application, repository, or list available ontologies."
+mcp_tool,palantir-mcp,palantir-mcp_search_foundry_ontology,,Search ontology object and action type definitions by structured query.
+mcp_tool,palantir-mcp,palantir-mcp_search_foundry_functions,,"Search Foundry function definitions by text, language, ontology, and types."
+mcp_tool,palantir-mcp,palantir-mcp_view_foundry_object_type,,"View full object type definition including properties, links, and actions."
+mcp_tool,palantir-mcp,palantir-mcp_view_foundry_action_type,,View action type details and dependent object type metadata.
+mcp_tool,palantir-mcp,palantir-mcp_get_ontology_sdk_context,,"Get OSDK concepts, version context, and available documentation topics."
+mcp_tool,palantir-mcp,palantir-mcp_get_ontology_sdk_examples,,Fetch version-specific TypeScript OSDK code examples for a topic.
+mcp_tool,palantir-mcp,palantir-mcp_list_platform_sdk_apis,,List available Platform SDK operationIds for a selected Foundry product.
+mcp_tool,palantir-mcp,palantir-mcp_get_platform_sdk_api_reference,,Get OpenAPI reference and integration examples for a specific operationId.
+mcp_tool,palantir-mcp,palantir-mcp_list_resources_in_foundry_folder,,"List resources in a Foundry folder or project, with pagination."
+mcp_tool,palantir-mcp,palantir-mcp_get_project_imports,,List datasets imported into a Foundry project.
+mcp_tool,palantir-mcp,palantir-mcp_create_and_write_to_foundry_dataset,,Create a Foundry dataset and upload CSV data with schema.
+mcp_tool,palantir-mcp,palantir-mcp_get_foundry_dataset_schema,,"Fetch dataset path, RID, and schema by RID or path."
+mcp_tool,palantir-mcp,palantir-mcp_create_foundry_rest_api_data_source,,Create a REST API data connection source in Foundry.
+mcp_tool,palantir-mcp,palantir-mcp_get_or_create_network_egress_policy,,Get or create network egress policies for external host and port.
+mcp_tool,palantir-mcp,palantir-mcp_get_resource_graph,,Retrieve upstream and downstream lineage graph for Foundry resources.
+mcp_tool,palantir-mcp,palantir-mcp_query_ontology_objects,,List ontology objects for an object type with pagination and ordering.
+mcp_tool,palantir-mcp,palantir-mcp_aggregate_ontology_objects,,Run aggregations on ontology objects with grouping and filtering.
+mcp_tool,palantir-mcp,palantir-mcp_get_repository_context,,"Get repository, project, and ontology context for a local clone."
+mcp_tool,palantir-mcp,palantir-mcp_create_foundry_branch,,Create a new Foundry branch for ontology development.
+mcp_tool,palantir-mcp,palantir-mcp_create_foundry_proposal,,Create a Foundry proposal from a branch for user approval.
+mcp_tool,palantir-mcp,palantir-mcp_generate_new_ontology_sdk_version,,"Generate a new OSDK version with entity additions, updates, or deletions."
+mcp_tool,palantir-mcp,palantir-mcp_get_python_transforms_documentation,,Fetch curated docs for Python transforms and transforms.api usage.
+mcp_tool,palantir-mcp,palantir-mcp_get_ml_documentation,,Fetch ML workflow documentation for Python transforms and MLOps patterns.
+mcp_tool,palantir-mcp,palantir-mcp_get_typescript_v1_functions_documentation,,Fetch curated documentation for TypeScript V1 Foundry functions.
+mcp_tool,palantir-mcp,palantir-mcp_get_typescript_v2_functions_documentation,,Fetch curated documentation for TypeScript V2 Foundry functions.
+mcp_tool,palantir-mcp,palantir-mcp_get_custom_widget_documentation,,Fetch custom widget docs for Workshop/Slate React widget development.
+mcp_tool,palantir-mcp,palantir-mcp_get_compute_modules_documentation,,Fetch compute module docs for container-backed Python functions.
+mcp_tool,palantir-mcp,palantir-mcp_search_foundry_documentation,,Search Foundry documentation indexes for relevant concept snippets.
+mcp_tool,palantir-mcp,palantir-mcp_clone_code_repository_locally,,Clone a Foundry code repository into the local workspace.
+mcp_tool,palantir-mcp,palantir-mcp_close_foundry_branch,,Close an existing Foundry branch.
+mcp_tool,palantir-mcp,palantir-mcp_close_foundry_proposal,,Close an existing Foundry proposal.
+mcp_tool,palantir-mcp,palantir-mcp_connect_to_dev_console_app,,Connect a non-Foundry Git repository to a Developer Console application.
+mcp_tool,palantir-mcp,palantir-mcp_convert_to_osdk_react,,Convert a repository to an OSDK React application setup.
+mcp_tool,palantir-mcp,palantir-mcp_create_code_repository_pull_request,,Create a pull request in a Foundry code repository.
+mcp_tool,palantir-mcp,palantir-mcp_create_foundry_rest_api_data_source_webhook,,Create a webhook for a Foundry REST API data source.
+mcp_tool,palantir-mcp,palantir-mcp_create_or_update_foundry_link_type,,Create or update an ontology link type on a Foundry branch.
+mcp_tool,palantir-mcp,palantir-mcp_create_or_update_foundry_object_type,,Create or update an ontology object type on a Foundry branch.
+mcp_tool,palantir-mcp,palantir-mcp_create_python_transforms_code_repository,,Create a new Python transforms code repository.
+mcp_tool,palantir-mcp,palantir-mcp_delete_foundry_link_type,,Delete an ontology link type from a Foundry branch.
+mcp_tool,palantir-mcp,palantir-mcp_delete_foundry_object_type,,Delete an ontology object type from a Foundry branch.
+mcp_tool,palantir-mcp,palantir-mcp_install_sdk_package,,Install an SDK package in the connected repository.
+mcp_tool,palantir-mcp,palantir-mcp_run_sql_query_on_foundry_dataset,,Run a SQL query against a Foundry dataset.
+mcp_tool,palantir-mcp,palantir-mcp_view_foundry_branch,,View Foundry branch details and modified resources.
+mcp_tool,palantir-mcp,palantir-mcp_view_foundry_link_type,,View an ontology link type definition.
+mcp_tool,palantir-mcp,palantir-mcp_view_foundry_proposal,,View Foundry proposal details and changed entities.
+mcp_tool,palantir-mcp,palantir-mcp_view_osdk_definition,,View OSDK type definitions and interfaces for the connected app.
+platform_api,aipAgents,aipAgentsListSessionsForAgents,get,GET platform operation in aipAgents: list Sessions For Agents.
+platform_api,aipAgents,aipAgentsGetAgent,get,GET platform operation in aipAgents: get Agent.
+platform_api,aipAgents,aipAgentsListAgentVersions,get,GET platform operation in aipAgents: list Agent Versions.
+platform_api,aipAgents,aipAgentsGetAgentVersion,get,GET platform operation in aipAgents: get Agent Version.
+platform_api,aipAgents,aipAgentsListSessions,get,GET platform operation in aipAgents: list Sessions.
+platform_api,aipAgents,aipAgentsCreateSession,post,POST platform operation in aipAgents: create Session.
+platform_api,aipAgents,aipAgentsGetSession,get,GET platform operation in aipAgents: get Session.
+platform_api,aipAgents,aipAgentsDeleteSession,delete,DELETE platform operation in aipAgents: delete Session.
+platform_api,aipAgents,aipAgentsBlockingContinueSession,post,POST platform operation in aipAgents: blocking Continue Session.
+platform_api,aipAgents,aipAgentsCancelSession,post,POST platform operation in aipAgents: cancel Session.
+platform_api,aipAgents,aipAgentsGetContent,get,GET platform operation in aipAgents: get Content.
+platform_api,aipAgents,aipAgentsGetRagContextForSession,put,PUT platform operation in aipAgents: get Rag Context For Session.
+platform_api,aipAgents,aipAgentsGetSessionTrace,get,GET platform operation in aipAgents: get Session Trace.
+platform_api,aipAgents,aipAgentsStreamingContinueSession,post,POST platform operation in aipAgents: streaming Continue Session.
+platform_api,aipAgents,aipAgentsUpdateSessionTitle,put,PUT platform operation in aipAgents: update Session Title.
+platform_api,admin,adminListAuthenticationProviders,get,GET platform operation in admin: list Authentication Providers.
+platform_api,admin,adminGetAuthenticationProvider,get,GET platform operation in admin: get Authentication Provider.
+platform_api,admin,adminPreregisterGroup,post,POST platform operation in admin: preregister Group.
+platform_api,admin,adminPreregisterUser,post,POST platform operation in admin: preregister User.
+platform_api,admin,adminListGroups,get,GET platform operation in admin: list Groups.
+platform_api,admin,adminCreateGroup,post,POST platform operation in admin: create Group.
+platform_api,admin,adminGetGroupsBatch,post,POST platform operation in admin: get Groups Batch.
+platform_api,admin,adminSearchGroups,post,POST platform operation in admin: search Groups.
+platform_api,admin,adminGetGroup,get,GET platform operation in admin: get Group.
+platform_api,admin,adminDeleteGroup,delete,DELETE platform operation in admin: delete Group.
+platform_api,admin,adminListGroupMembers,get,GET platform operation in admin: list Group Members.
+platform_api,admin,adminAddGroupMembers,post,POST platform operation in admin: add Group Members.
+platform_api,admin,adminRemoveGroupMembers,post,POST platform operation in admin: remove Group Members.
+platform_api,admin,adminGetGroupMembershipExpirationPolicy,get,GET platform operation in admin: get Group Membership Expiration Policy.
+platform_api,admin,adminReplaceGroupMembershipExpirationPolicy,put,PUT platform operation in admin: replace Group Membership Expiration Policy.
+platform_api,admin,adminGetGroupProviderInfo,get,GET platform operation in admin: get Group Provider Info.
+platform_api,admin,adminReplaceGroupProviderInfo,put,PUT platform operation in admin: replace Group Provider Info.
+platform_api,admin,adminListMarkingCategories,get,GET platform operation in admin: list Marking Categories.
+platform_api,admin,adminGetMarkingCategory,get,GET platform operation in admin: get Marking Category.
+platform_api,admin,adminListMarkings,get,GET platform operation in admin: list Markings.
+platform_api,admin,adminCreateMarking,post,POST platform operation in admin: create Marking.
+platform_api,admin,adminGetMarkingsBatch,post,POST platform operation in admin: get Markings Batch.
+platform_api,admin,adminGetMarking,get,GET platform operation in admin: get Marking.
+platform_api,admin,adminReplaceMarking,put,PUT platform operation in admin: replace Marking.
+platform_api,admin,adminListMarkingMembers,get,GET platform operation in admin: list Marking Members.
+platform_api,admin,adminAddMarkingMembers,post,POST platform operation in admin: add Marking Members.
+platform_api,admin,adminRemoveMarkingMembers,post,POST platform operation in admin: remove Marking Members.
+platform_api,admin,adminListMarkingRoleAssignments,get,GET platform operation in admin: list Marking Role Assignments.
+platform_api,admin,adminAddMarkingRoleAssignments,post,POST platform operation in admin: add Marking Role Assignments.
+platform_api,admin,adminRemoveMarkingRoleAssignments,post,POST platform operation in admin: remove Marking Role Assignments.
+platform_api,admin,adminGetOrganization,get,GET platform operation in admin: get Organization.
+platform_api,admin,adminReplaceOrganization,put,PUT platform operation in admin: replace Organization.
+platform_api,admin,adminListAvailableRolesOrganization,get,GET platform operation in admin: list Available Roles Organization.
+platform_api,admin,adminListOrganizationRoleAssignments,get,GET platform operation in admin: list Organization Role Assignments.
+platform_api,admin,adminAddOrganizationRoleAssignments,post,POST platform operation in admin: add Organization Role Assignments.
+platform_api,admin,adminRemoveOrganizationRoleAssignments,post,POST platform operation in admin: remove Organization Role Assignments.
+platform_api,admin,adminListUsers,get,GET platform operation in admin: list Users.
+platform_api,admin,adminGetUsersBatch,post,POST platform operation in admin: get Users Batch.
+platform_api,admin,adminGetCurrentUser,get,GET platform operation in admin: get Current User.
+platform_api,admin,adminSearchUsers,post,POST platform operation in admin: search Users.
+platform_api,admin,adminGetUser,get,GET platform operation in admin: get User.
+platform_api,admin,adminDeleteUser,delete,DELETE platform operation in admin: delete User.
+platform_api,admin,adminGetMarkingsUser,get,GET platform operation in admin: get Markings User.
+platform_api,admin,adminListGroupMemberships,get,GET platform operation in admin: list Group Memberships.
+platform_api,admin,adminGetProfilePictureOfUser,get,GET platform operation in admin: get Profile Picture Of User.
+platform_api,admin,adminGetUserProviderInfo,get,GET platform operation in admin: get User Provider Info.
+platform_api,admin,adminReplaceUserProviderInfo,put,PUT platform operation in admin: replace User Provider Info.
+platform_api,admin,adminRevokeAllTokensUser,post,POST platform operation in admin: revoke All Tokens User.
+platform_api,connectivity,connectivityCreateConnection,post,POST platform operation in connectivity: create Connection.
+platform_api,connectivity,connectivityGetConfigurationConnectionsBatch,post,POST platform operation in connectivity: get Configuration Connections Batch.
+platform_api,connectivity,connectivityGetConnection,get,GET platform operation in connectivity: get Connection.
+platform_api,connectivity,connectivityListFileImports,get,GET platform operation in connectivity: list File Imports.
+platform_api,connectivity,connectivityCreateFileImport,post,POST platform operation in connectivity: create File Import.
+platform_api,connectivity,connectivityGetFileImport,get,GET platform operation in connectivity: get File Import.
+platform_api,connectivity,connectivityReplaceFileImport,put,PUT platform operation in connectivity: replace File Import.
+platform_api,connectivity,connectivityDeleteFileImport,delete,DELETE platform operation in connectivity: delete File Import.
+platform_api,connectivity,connectivityExecuteFileImport,post,POST platform operation in connectivity: execute File Import.
+platform_api,connectivity,connectivityGetConfiguration,get,GET platform operation in connectivity: get Configuration.
+platform_api,connectivity,connectivityListTableImports,get,GET platform operation in connectivity: list Table Imports.
+platform_api,connectivity,connectivityCreateTableImport,post,POST platform operation in connectivity: create Table Import.
+platform_api,connectivity,connectivityGetTableImport,get,GET platform operation in connectivity: get Table Import.
+platform_api,connectivity,connectivityReplaceTableImport,put,PUT platform operation in connectivity: replace Table Import.
+platform_api,connectivity,connectivityDeleteTableImport,delete,DELETE platform operation in connectivity: delete Table Import.
+platform_api,connectivity,connectivityExecuteTableImport,post,POST platform operation in connectivity: execute Table Import.
+platform_api,connectivity,connectivityUpdateExportSettingsForConnection,post,POST platform operation in connectivity: update Export Settings For Connection.
+platform_api,connectivity,connectivityUpdateSecretsForConnection,post,POST platform operation in connectivity: update Secrets For Connection.
+platform_api,connectivity,connectivityUploadCustomJdbcDriversConnection,post,POST platform operation in connectivity: upload Custom Jdbc Drivers Connection.
+platform_api,connectivity,connectivityCreateVirtualTable,post,POST platform operation in connectivity: create Virtual Table.
+platform_api,datasets,datasetsCreateDataset,post,POST platform operation in datasets: create Dataset.
+platform_api,datasets,datasetsGetSchemaDatasetsBatch,post,POST platform operation in datasets: get Schema Datasets Batch.
+platform_api,datasets,datasetsCreateView,post,POST platform operation in datasets: create View.
+platform_api,datasets,datasetsGetView,get,GET platform operation in datasets: get View.
+platform_api,datasets,datasetsAddBackingDatasets,post,POST platform operation in datasets: add Backing Datasets.
+platform_api,datasets,datasetsAddPrimaryKey,post,POST platform operation in datasets: add Primary Key.
+platform_api,datasets,datasetsRemoveBackingDatasets,post,POST platform operation in datasets: remove Backing Datasets.
+platform_api,datasets,datasetsReplaceBackingDatasets,put,PUT platform operation in datasets: replace Backing Datasets.
+platform_api,datasets,datasetsGetDataset,get,GET platform operation in datasets: get Dataset.
+platform_api,datasets,datasetsListBranches,get,GET platform operation in datasets: list Branches.
+platform_api,datasets,datasetsCreateBranch,post,POST platform operation in datasets: create Branch.
+platform_api,datasets,datasetsGetBranch,get,GET platform operation in datasets: get Branch.
+platform_api,datasets,datasetsDeleteBranch,delete,DELETE platform operation in datasets: delete Branch.
+platform_api,datasets,datasetsGetBranchTransactionHistory,get,GET platform operation in datasets: get Branch Transaction History.
+platform_api,datasets,datasetsListFiles,get,GET platform operation in datasets: list Files.
+platform_api,datasets,datasetsGetFile,get,GET platform operation in datasets: get File.
+platform_api,datasets,datasetsDeleteFile,delete,DELETE platform operation in datasets: delete File.
+platform_api,datasets,datasetsGetFileContent,get,GET platform operation in datasets: get File Content.
+platform_api,datasets,datasetsUploadFile,post,POST platform operation in datasets: upload File.
+platform_api,datasets,datasetsGetDatasetHealthCheckReports,get,GET platform operation in datasets: get Dataset Health Check Reports.
+platform_api,datasets,datasetsGetDatasetHealthChecks,get,GET platform operation in datasets: get Dataset Health Checks.
+platform_api,datasets,datasetsGetDatasetSchedules,get,GET platform operation in datasets: get Dataset Schedules.
+platform_api,datasets,datasetsGetDatasetSchema,get,GET platform operation in datasets: get Dataset Schema.
+platform_api,datasets,datasetsGetDatasetJobs,post,POST platform operation in datasets: get Dataset Jobs.
+platform_api,datasets,datasetsPutDatasetSchema,put,PUT platform operation in datasets: put Dataset Schema.
+platform_api,datasets,datasetsReadTableDataset,get,GET platform operation in datasets: read Table Dataset.
+platform_api,datasets,datasetsListTransactionsOfDataset,get,GET platform operation in datasets: list Transactions Of Dataset.
+platform_api,datasets,datasetsCreateTransaction,post,POST platform operation in datasets: create Transaction.
+platform_api,datasets,datasetsGetTransaction,get,GET platform operation in datasets: get Transaction.
+platform_api,datasets,datasetsAbortTransaction,post,POST platform operation in datasets: abort Transaction.
+platform_api,datasets,datasetsCommitTransaction,post,POST platform operation in datasets: commit Transaction.
+platform_api,filesystem,filesystemCreateFolder,post,POST platform operation in filesystem: create Folder.
+platform_api,filesystem,filesystemGetFoldersBatch,post,POST platform operation in filesystem: get Folders Batch.
+platform_api,filesystem,filesystemGetFolder,get,GET platform operation in filesystem: get Folder.
+platform_api,filesystem,filesystemListChildrenOfFolder,get,GET platform operation in filesystem: list Children Of Folder.
+platform_api,filesystem,filesystemCreateProject,post,POST platform operation in filesystem: create Project.
+platform_api,filesystem,filesystemCreateProjectFromTemplate,post,POST platform operation in filesystem: create Project From Template.
+platform_api,filesystem,filesystemGetProject,get,GET platform operation in filesystem: get Project.
+platform_api,filesystem,filesystemAddOrganizations,post,POST platform operation in filesystem: add Organizations.
+platform_api,filesystem,filesystemListOrganizationsOfProject,get,GET platform operation in filesystem: list Organizations Of Project.
+platform_api,filesystem,filesystemRemoveOrganizations,post,POST platform operation in filesystem: remove Organizations.
+platform_api,filesystem,filesystemGetResourcesBatch,post,POST platform operation in filesystem: get Resources Batch.
+platform_api,filesystem,filesystemGetByPath,get,GET platform operation in filesystem: get By Path.
+platform_api,filesystem,filesystemGetByPathResourcesBatch,post,POST platform operation in filesystem: get By Path Resources Batch.
+platform_api,filesystem,filesystemGetResource,get,GET platform operation in filesystem: get Resource.
+platform_api,filesystem,filesystemDeleteResource,delete,DELETE platform operation in filesystem: delete Resource.
+platform_api,filesystem,filesystemAddMarkings,post,POST platform operation in filesystem: add Markings.
+platform_api,filesystem,filesystemGetAccessRequirements,get,GET platform operation in filesystem: get Access Requirements.
+platform_api,filesystem,filesystemListMarkingsOfResource,get,GET platform operation in filesystem: list Markings Of Resource.
+platform_api,filesystem,filesystemPermanentlyDeleteResource,post,POST platform operation in filesystem: permanently Delete Resource.
+platform_api,filesystem,filesystemRemoveMarkings,post,POST platform operation in filesystem: remove Markings.
+platform_api,filesystem,filesystemRestoreResource,post,POST platform operation in filesystem: restore Resource.
+platform_api,filesystem,filesystemListResourceRoles,get,GET platform operation in filesystem: list Resource Roles.
+platform_api,filesystem,filesystemAddResourceRoles,post,POST platform operation in filesystem: add Resource Roles.
+platform_api,filesystem,filesystemRemoveResourceRoles,post,POST platform operation in filesystem: remove Resource Roles.
+platform_api,filesystem,filesystemListSpaces,get,GET platform operation in filesystem: list Spaces.
+platform_api,mediaSets,mediaSetsUploadMedia,put,PUT platform operation in mediaSets: upload Media.
+platform_api,mediaSets,mediaSetsPutMediaItem,post,POST platform operation in mediaSets: put Media Item.
+platform_api,mediaSets,mediaSetsGetMediaItemRidByPath,get,GET platform operation in mediaSets: get Media Item Rid By Path.
+platform_api,mediaSets,mediaSetsGetMediaItemInfo,get,GET platform operation in mediaSets: get Media Item Info.
+platform_api,mediaSets,mediaSetsReadMediaItem,get,GET platform operation in mediaSets: read Media Item.
+platform_api,mediaSets,mediaSetsGetMediaItemMetadata,get,GET platform operation in mediaSets: get Media Item Metadata.
+platform_api,mediaSets,mediaSetsReadOriginalMediaItem,get,GET platform operation in mediaSets: read Original Media Item.
+platform_api,mediaSets,mediaSetsGetMediaItemReference,get,GET platform operation in mediaSets: get Media Item Reference.
+platform_api,mediaSets,mediaSetsCreateMediaTransaction,post,POST platform operation in mediaSets: create Media Transaction.
+platform_api,mediaSets,mediaSetsAbortMediaTransaction,post,POST platform operation in mediaSets: abort Media Transaction.
+platform_api,mediaSets,mediaSetsCommitMediaTransaction,post,POST platform operation in mediaSets: commit Media Transaction.
+platform_api,ontologies,ontologiesListOntologiesV2,get,GET platform operation in ontologies: list Ontologies V2.
+platform_api,ontologies,ontologiesUploadAttachmentV2,post,POST platform operation in ontologies: upload Attachment V2.
+platform_api,ontologies,ontologiesGetAttachmentV2,get,GET platform operation in ontologies: get Attachment V2.
+platform_api,ontologies,ontologiesGetAttachmentContentV2,get,GET platform operation in ontologies: get Attachment Content V2.
+platform_api,ontologies,ontologiesGetOntologyV2,get,GET platform operation in ontologies: get Ontology V2.
+platform_api,ontologies,ontologiesListActionTypesV2,get,GET platform operation in ontologies: list Action Types V2.
+platform_api,ontologies,ontologiesGetActionTypeByRid,get,GET platform operation in ontologies: get Action Type By Rid.
+platform_api,ontologies,ontologiesGetActionTypeV2,get,GET platform operation in ontologies: get Action Type V2.
+platform_api,ontologies,ontologiesApplyActionV2,post,POST platform operation in ontologies: apply Action V2.
+platform_api,ontologies,ontologiesApplyActionBatchV2,post,POST platform operation in ontologies: apply Action Batch V2.
+platform_api,ontologies,ontologiesGetOntologyFullMetadata,get,GET platform operation in ontologies: get Ontology Full Metadata.
+platform_api,ontologies,ontologiesListInterfaceTypes,get,GET platform operation in ontologies: list Interface Types.
+platform_api,ontologies,ontologiesGetInterfaceType,get,GET platform operation in ontologies: get Interface Type.
+platform_api,ontologies,ontologiesAggregateObjectSetV2,post,POST platform operation in ontologies: aggregate Object Set V2.
+platform_api,ontologies,ontologiesCreateTemporaryObjectSetV2,post,POST platform operation in ontologies: create Temporary Object Set V2.
+platform_api,ontologies,ontologiesLoadObjectSetV2,post,POST platform operation in ontologies: load Object Set V2.
+platform_api,ontologies,ontologiesLoadObjectSetV2MultipleObjectTypes,post,POST platform operation in ontologies: load Object Set V2 Multiple Object Types.
+platform_api,ontologies,ontologiesLoadObjectSetV2ObjectsOrInterfaces,post,POST platform operation in ontologies: load Object Set V2 Objects Or Interfaces.
+platform_api,ontologies,ontologiesListObjectTypesV2,get,GET platform operation in ontologies: list Object Types V2.
+platform_api,ontologies,ontologiesGetObjectTypeV2,get,GET platform operation in ontologies: get Object Type V2.
+platform_api,ontologies,ontologiesUploadMediaContent,post,POST platform operation in ontologies: upload Media Content.
+platform_api,ontologies,ontologiesListOutgoingLinkTypesV2,get,GET platform operation in ontologies: list Outgoing Link Types V2.
+platform_api,ontologies,ontologiesGetOutgoingLinkTypeV2,get,GET platform operation in ontologies: get Outgoing Link Type V2.
+platform_api,ontologies,ontologiesListObjectsV2,get,GET platform operation in ontologies: list Objects V2.
+platform_api,ontologies,ontologiesAggregateObjectsV2,post,POST platform operation in ontologies: aggregate Objects V2.
+platform_api,ontologies,ontologiesSearchObjectsV2,post,POST platform operation in ontologies: search Objects V2.
+platform_api,ontologies,ontologiesGetObjectV2,get,GET platform operation in ontologies: get Object V2.
+platform_api,ontologies,ontologiesListPropertyAttachments,get,GET platform operation in ontologies: list Property Attachments.
+platform_api,ontologies,ontologiesGetAttachmentPropertyContentV2,get,GET platform operation in ontologies: get Attachment Property Content V2.
+platform_api,ontologies,ontologiesGetAttachmentPropertyByRidV2,get,GET platform operation in ontologies: get Attachment Property By Rid V2.
+platform_api,ontologies,ontologiesGetAttachmentPropertyContentByRidV2,get,GET platform operation in ontologies: get Attachment Property Content By Rid V2.
+platform_api,ontologies,ontologiesDecrypt,get,GET platform operation in ontologies: decrypt.
+platform_api,ontologies,ontologiesListLinkedObjectsV2,get,GET platform operation in ontologies: list Linked Objects V2.
+platform_api,ontologies,ontologiesGetLinkedObjectV2,get,GET platform operation in ontologies: get Linked Object V2.
+platform_api,ontologies,ontologiesReadMediaContent,get,GET platform operation in ontologies: read Media Content.
+platform_api,ontologies,ontologiesGetLatestValue,get,GET platform operation in ontologies: get Latest Value.
+platform_api,ontologies,ontologiesGetFirstPoint,get,GET platform operation in ontologies: get First Point.
+platform_api,ontologies,ontologiesGetLastPoint,get,GET platform operation in ontologies: get Last Point.
+platform_api,ontologies,ontologiesStreamPoints,post,POST platform operation in ontologies: stream Points.
+platform_api,ontologies,ontologiesStreamValues,post,POST platform operation in ontologies: stream Values.
+platform_api,ontologies,ontologiesExecuteQueryV2,post,POST platform operation in ontologies: execute Query V2.
+platform_api,ontologies,ontologiesListQueryTypesV2,get,GET platform operation in ontologies: list Query Types V2.
+platform_api,ontologies,ontologiesGetQueryTypeV2,get,GET platform operation in ontologies: get Query Type V2.
+platform_api,ontologies,ontologiesListOntologyValueTypes,get,GET platform operation in ontologies: list Ontology Value Types.
+platform_api,ontologies,ontologiesGetOntologyValueType,get,GET platform operation in ontologies: get Ontology Value Type.
+platform_api,orchestration,orchestrationCreateBuild,post,POST platform operation in orchestration: create Build.
+platform_api,orchestration,orchestrationGetBuildsBatch,post,POST platform operation in orchestration: get Builds Batch.
+platform_api,orchestration,orchestrationGetBuild,get,GET platform operation in orchestration: get Build.
+platform_api,orchestration,orchestrationCancelBuild,post,POST platform operation in orchestration: cancel Build.
+platform_api,orchestration,orchestrationListJobsOfBuild,get,GET platform operation in orchestration: list Jobs Of Build.
+platform_api,orchestration,orchestrationGetJobsBatch,post,POST platform operation in orchestration: get Jobs Batch.
+platform_api,orchestration,orchestrationGetJob,get,GET platform operation in orchestration: get Job.
+platform_api,orchestration,orchestrationGetScheduleVersion,get,GET platform operation in orchestration: get Schedule Version.
+platform_api,orchestration,orchestrationGetScheduleOfScheduleVersion,get,GET platform operation in orchestration: get Schedule Of Schedule Version.
+platform_api,orchestration,orchestrationCreateSchedule,post,POST platform operation in orchestration: create Schedule.
+platform_api,orchestration,orchestrationGetSchedulesBatch,post,POST platform operation in orchestration: get Schedules Batch.
+platform_api,orchestration,orchestrationGetSchedule,get,GET platform operation in orchestration: get Schedule.
+platform_api,orchestration,orchestrationReplaceSchedule,put,PUT platform operation in orchestration: replace Schedule.
+platform_api,orchestration,orchestrationDeleteSchedule,delete,DELETE platform operation in orchestration: delete Schedule.
+platform_api,orchestration,orchestrationGetAffectedResourcesSchedule,post,POST platform operation in orchestration: get Affected Resources Schedule.
+platform_api,orchestration,orchestrationPauseSchedule,post,POST platform operation in orchestration: pause Schedule.
+platform_api,orchestration,orchestrationRunSchedule,post,POST platform operation in orchestration: run Schedule.
+platform_api,orchestration,orchestrationListRunsOfSchedule,get,GET platform operation in orchestration: list Runs Of Schedule.
+platform_api,orchestration,orchestrationUnpauseSchedule,post,POST platform operation in orchestration: unpause Schedule.
+platform_api,sqlQueries,sqlQueriesExecuteSqlQuery,post,POST platform operation in sqlQueries: execute Sql Query.
+platform_api,sqlQueries,sqlQueriesCancelSqlQuery,post,POST platform operation in sqlQueries: cancel Sql Query.
+platform_api,sqlQueries,sqlQueriesGetResultsSqlQuery,get,GET platform operation in sqlQueries: get Results Sql Query.
+platform_api,sqlQueries,sqlQueriesGetStatusSqlQuery,get,GET platform operation in sqlQueries: get Status Sql Query.
+platform_api,streams,streamsCreateStreamingDataset,post,POST platform operation in streams: create Streaming Dataset.
+platform_api,streams,streamsCreateStream,post,POST platform operation in streams: create Stream.
+platform_api,streams,streamsGetStream,get,GET platform operation in streams: get Stream.
+platform_api,streams,streamsResetStream,post,POST platform operation in streams: reset Stream.

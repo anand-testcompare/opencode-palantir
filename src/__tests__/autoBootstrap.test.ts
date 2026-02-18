@@ -13,6 +13,7 @@ type McpServerConfig = {
 };
 
 type AgentConfig = {
+  mode?: string;
   tools?: Record<string, unknown>;
 };
 
@@ -78,10 +79,13 @@ describe('autoBootstrapPalantirMcpIfConfigured', () => {
 
     expect(cfg.agent?.['foundry-librarian']).toBeTruthy();
     expect(cfg.agent?.foundry).toBeTruthy();
+    expect(cfg.agent?.['foundry-librarian']?.mode).toBe('subagent');
+    expect(cfg.agent?.foundry?.mode).toBe('all');
 
     expect(cfg.agent?.['foundry-librarian']?.tools?.['palantir-mcp_list_datasets']).toBe(true);
     expect(cfg.agent?.['foundry-librarian']?.tools?.['palantir-mcp_get_dataset']).toBe(true);
     expect(cfg.agent?.['foundry-librarian']?.tools?.['palantir-mcp_create_thing']).toBe(false);
+    expect(cfg.agent?.foundry?.tools?.['palantir-mcp_create_thing']).toBe(true);
   });
 
   it('is idempotent for repeated runs', async () => {

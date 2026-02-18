@@ -241,8 +241,11 @@ function ensureAgentDefaults(
       ? 'Foundry exploration and context gathering (parallel-friendly)'
       : 'Foundry execution agent (uses only enabled palantir-mcp tools)';
 
+  const defaultMode: 'subagent' | 'all' = agentName === 'foundry' ? 'all' : 'subagent';
   const mode: unknown = agent['mode'];
-  if (typeof mode !== 'string') agent['mode'] = 'subagent';
+  if (mode !== 'subagent' && mode !== 'primary' && mode !== 'all') {
+    agent['mode'] = defaultMode;
+  }
 
   if (typeof agent['hidden'] !== 'boolean') agent['hidden'] = false;
 
