@@ -50,9 +50,17 @@ describe('plugin config hook', () => {
     expect(cfg.command?.['refresh-docs-rescrape']?.template).toBeTruthy();
     expect(cfg.command?.['setup-palantir-mcp']?.template).toBeTruthy();
     expect(cfg.command?.['rescan-palantir-mcp-tools']?.template).toBeTruthy();
+    expect(cfg.command?.['setup-palantir-mcp']?.description).toContain(
+      'Missing env: FOUNDRY_URL, FOUNDRY_TOKEN'
+    );
+    expect(cfg.command?.['rescan-palantir-mcp-tools']?.description).toContain(
+      'Missing env: FOUNDRY_TOKEN'
+    );
 
     expect(cfg.agent?.['foundry-librarian']).toBeTruthy();
     expect(cfg.agent?.foundry).toBeTruthy();
+    expect(cfg.agent?.['foundry-librarian']?.mode).toBe('subagent');
+    expect(cfg.agent?.foundry?.mode).toBe('all');
     expect(ensureDocsSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         dbPath: path.join(tmpDir, 'data', 'docs.parquet'),

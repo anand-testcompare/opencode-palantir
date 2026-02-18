@@ -62,18 +62,33 @@ function formatPatchSummary(patch: PatchResult): string {
   return lines.join('\n');
 }
 
-async function resolveProfile(worktree: string): Promise<{
-  profile: ProfileId;
-  reasons: string[];
-}> {
+function getTrimmedEnvVar(name: 'FOUNDRY_URL' | 'FOUNDRY_TOKEN'): string | null {
+  const raw: string | undefined = process.env[name];
+  if (!raw) return null;
+  const trimmed: string = raw.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function formatMissingEnvGuidance(missingVars: Array<'FOUNDRY_URL' | 'FOUNDRY_TOKEN'>): string {
+  const exports: string = missingVars.map((name) => `export ${name}=...`).join('\n  ');
+  return [
+    `[ERROR] Missing required environment: ${missingVars.join(', ')}`,
+    '',
+    'Foundry MCP setup is inactive until these are exported.',
+    'Local docs tools (`get_doc_page`, `list_all_docs`) remain available.',
+    '',
+    'Set:',
+    `  ${exports}`,
+  ].join('\n');
+}
+
+async function resolveProfile(worktree: string): Promise<ProfileId> {
   try {
     const scan = await scanRepoForProfile(worktree);
-    return { profile: scan.profile, reasons: scan.reasons };
+    return scan.profile;
   } catch (err) {
-    return {
-      profile: 'unknown',
-      reasons: [`Repo scan failed; falling back to unknown: ${formatError(err)}`],
-    };
+    void err;
+    return 'default';
   }
 }
 
@@ -104,10 +119,10 @@ function isAutoBootstrapAlreadyComplete(data: Record<string, unknown>): boolean 
 
 export async function autoBootstrapPalantirMcpIfConfigured(worktree: string): Promise<void> {
   try {
-    const tokenRaw: string | undefined = process.env.FOUNDRY_TOKEN;
-    const urlRaw: string | undefined = process.env.FOUNDRY_URL;
-    if (!tokenRaw || tokenRaw.trim().length === 0) return;
-    if (!urlRaw || urlRaw.trim().length === 0) return;
+    const tokenRaw: string | null = getTrimmedEnvVar('FOUNDRY_TOKEN');
+    const urlRaw: string | null = getTrimmedEnvVar('FOUNDRY_URL');
+    if (!tokenRaw) return;
+    if (!urlRaw) return;
 
     const normalized = normalizeFoundryBaseUrl(urlRaw);
     if ('error' in normalized) return;
@@ -131,7 +146,7 @@ export async function autoBootstrapPalantirMcpIfConfigured(worktree: string): Pr
       ? normalizeFoundryBaseUrl(existingMcpUrlRaw)
       : null;
 
-    const { profile } = await resolveProfile(worktree);
+    const profile: ProfileId = await resolveProfile(worktree);
     const discoveryUrl: string =
       existingMcpUrlNorm && 'url' in existingMcpUrlNorm ? existingMcpUrlNorm.url : normalized.url;
 
@@ -171,18 +186,20 @@ export async function autoBootstrapPalantirMcpIfConfigured(worktree: string): Pr
 
 export async function setupPalantirMcp(worktree: string, rawArgs: string): Promise<string> {
   const urlFromArgs: string = rawArgs.trim();
-  const urlFromEnvRaw: string | undefined = process.env.FOUNDRY_URL;
-  const urlFromEnv: string = typeof urlFromEnvRaw === 'string' ? urlFromEnvRaw.trim() : '';
-  const urlArg: string = urlFromArgs || urlFromEnv;
+  const urlFromEnv: string | null = getTrimmedEnvVar('FOUNDRY_URL');
+  const token: string | null = getTrimmedEnvVar('FOUNDRY_TOKEN');
+  const urlArg: string = urlFromArgs || urlFromEnv || '';
   if (!urlArg) {
+    const missingVars: Array<'FOUNDRY_URL' | 'FOUNDRY_TOKEN'> = ['FOUNDRY_URL'];
+    if (!token) missingVars.push('FOUNDRY_TOKEN');
     return [
-      '[ERROR] Missing Foundry base URL.',
+      formatMissingEnvGuidance(missingVars),
       '',
       'Usage:',
       '  /setup-palantir-mcp <foundry_api_url>',
       '',
-      'Or set:',
-      '  export FOUNDRY_URL=<foundry_api_url>',
+      'Or pass URL directly:',
+      '  /setup-palantir-mcp https://YOUR-STACK.palantirfoundry.com',
       '',
       'Example:',
       '  /setup-palantir-mcp https://23dimethyl.usw-3.palantirfoundry.com',
@@ -192,18 +209,7 @@ export async function setupPalantirMcp(worktree: string, rawArgs: string): Promi
   const normalized = normalizeFoundryBaseUrl(urlArg);
   if ('error' in normalized) return `[ERROR] ${normalized.error}`;
 
-  if (!process.env.FOUNDRY_TOKEN) {
-    return [
-      '[ERROR] FOUNDRY_TOKEN is not set in your environment.',
-      '',
-      'palantir-mcp tool discovery requires a token. Export FOUNDRY_TOKEN and retry.',
-      '',
-      'Tip: if `echo $FOUNDRY_TOKEN` prints a value but this still errors, it is likely ' +
-        'not exported.',
-      'Run `export FOUNDRY_TOKEN` (or set `export FOUNDRY_TOKEN=...` in your shell ' +
-        'secrets) and retry.',
-    ].join('\n');
-  }
+  if (!token) return formatMissingEnvGuidance(['FOUNDRY_TOKEN']);
 
   const readJsonc = await readOpencodeJsonc(worktree);
   if (!readJsonc.ok && 'error' in readJsonc) return readJsonc.error;
@@ -220,7 +226,7 @@ export async function setupPalantirMcp(worktree: string, rawArgs: string): Promi
   const existingMcpUrlRaw: string | null = extractFoundryApiUrlFromMcpConfig(merged);
   const existingMcpUrlNorm = existingMcpUrlRaw ? normalizeFoundryBaseUrl(existingMcpUrlRaw) : null;
 
-  const { profile } = await resolveProfile(worktree);
+  const profile: ProfileId = await resolveProfile(worktree);
   const discoveryUrl: string =
     existingMcpUrlNorm && 'url' in existingMcpUrlNorm ? existingMcpUrlNorm.url : normalized.url;
   let toolNames: string[];
@@ -281,18 +287,7 @@ export async function setupPalantirMcp(worktree: string, rawArgs: string): Promi
 }
 
 export async function rescanPalantirMcpTools(worktree: string): Promise<string> {
-  if (!process.env.FOUNDRY_TOKEN) {
-    return [
-      '[ERROR] FOUNDRY_TOKEN is not set in your environment.',
-      '',
-      'palantir-mcp tool discovery requires a token. Export FOUNDRY_TOKEN and retry.',
-      '',
-      'Tip: if `echo $FOUNDRY_TOKEN` prints a value but this still errors, it is likely ' +
-        'not exported.',
-      'Run `export FOUNDRY_TOKEN` (or set `export FOUNDRY_TOKEN=...` in your shell ' +
-        'secrets) and retry.',
-    ].join('\n');
-  }
+  if (!getTrimmedEnvVar('FOUNDRY_TOKEN')) return formatMissingEnvGuidance(['FOUNDRY_TOKEN']);
 
   const readJsonc = await readOpencodeJsonc(worktree);
   if (!readJsonc.ok) {
@@ -317,7 +312,7 @@ export async function rescanPalantirMcpTools(worktree: string): Promise<string> 
   const normalized = normalizeFoundryBaseUrl(foundryUrlRaw);
   if ('error' in normalized) return `[ERROR] Invalid Foundry URL in config: ${normalized.error}`;
 
-  const { profile } = await resolveProfile(worktree);
+  const profile: ProfileId = await resolveProfile(worktree);
   let toolNames: string[];
   try {
     toolNames = await listPalantirMcpTools(normalized.url);
