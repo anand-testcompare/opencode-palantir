@@ -192,7 +192,10 @@ export async function listPalantirMcpTools(foundryApiUrl: string): Promise<strin
   } catch (err) {
     const stderrText: string = stderrChunks.join('');
     throw new Error(
-      `[ERROR] Failed to list palantir-mcp tools: ${formatError(err)}\n${stderrText}`
+      `[ERROR] Failed to list palantir-mcp tools: ${formatError(err)}\n${stderrText}`,
+      {
+        cause: err,
+      }
     );
   } finally {
     try {
