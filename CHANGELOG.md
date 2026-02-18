@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.6](https://github.com/anand-testcompare/opencode-palantir/compare/v0.1.5...v0.1.6) (2026-02-18)
+
+
+### Features
+
+* add concise foundry env guidance without prompt bloat ([8f08a4a](https://github.com/anand-testcompare/opencode-palantir/commit/8f08a4a657110edb79f5139342c24709d1470b85))
+* auto-bootstrap docs snapshot + safe refresh UX ([021b715](https://github.com/anand-testcompare/opencode-palantir/commit/021b715efb20fa244804270111017be66ac71e4f))
+* auto-bootstrap docs snapshot and refresh workflow ([b2ee23b](https://github.com/anand-testcompare/opencode-palantir/commit/b2ee23b0be95d207f451806205596897b588dc88))
+* lean foundry profile defaults and concise env guidance ([5062079](https://github.com/anand-testcompare/opencode-palantir/commit/5062079770d39e808faff9ac657f0b3330fce09c))
+* simplify foundry profile detection and tool policy defaults ([6433bac](https://github.com/anand-testcompare/opencode-palantir/commit/6433bac2d1a2ff2b223ecb9b33011a08d4180606))
+
+
+### Bug Fixes
+
+* preserve original error causes in fetch and mcp client ([b05d24c](https://github.com/anand-testcompare/opencode-palantir/commit/b05d24c37a6cf40d2635f8d2198e82514d03a1f8))
+
 ## [0.1.5](https://github.com/anand-testcompare/opencode-palantir/compare/v0.1.4...v0.1.5) (2026-02-08)
 
 
