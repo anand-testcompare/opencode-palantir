@@ -46,8 +46,26 @@ const plugin: Plugin = async (input) => {
     return `${value.toFixed(decimals)} ${units[index]}`;
   }
 
+  function getMissingFoundryEnvVars(): Array<'FOUNDRY_URL' | 'FOUNDRY_TOKEN'> {
+    const missing: Array<'FOUNDRY_URL' | 'FOUNDRY_TOKEN'> = [];
+    const url: string | undefined = process.env.FOUNDRY_URL;
+    const token: string | undefined = process.env.FOUNDRY_TOKEN;
+    if (!url || url.trim().length === 0) missing.push('FOUNDRY_URL');
+    if (!token || token.trim().length === 0) missing.push('FOUNDRY_TOKEN');
+    return missing;
+  }
+
   function ensureCommandDefinitions(cfg: Config): void {
     if (!cfg.command) cfg.command = {};
+    const missingEnvVars: Array<'FOUNDRY_URL' | 'FOUNDRY_TOKEN'> = getMissingFoundryEnvVars();
+    const hasMissingToken: boolean = missingEnvVars.includes('FOUNDRY_TOKEN');
+    const setupEnvSuffix: string =
+      missingEnvVars.length === 0
+        ? ''
+        : ` Missing env: ${missingEnvVars.join(', ')}. Local docs tools remain available.`;
+    const rescanEnvSuffix: string = hasMissingToken
+      ? ' Missing env: FOUNDRY_TOKEN. Local docs tools remain available.'
+      : '';
 
     if (!cfg.command['refresh-docs']) {
       cfg.command['refresh-docs'] = {
@@ -68,16 +86,14 @@ const plugin: Plugin = async (input) => {
     if (!cfg.command['setup-palantir-mcp']) {
       cfg.command['setup-palantir-mcp'] = {
         template: 'Set up palantir-mcp for this repo.',
-        description:
-          'Guided MCP setup for Foundry. Usage: /setup-palantir-mcp <foundry_api_url>. Requires FOUNDRY_TOKEN for tool discovery.',
+        description: `Guided MCP setup for Foundry. Usage: /setup-palantir-mcp <foundry_api_url>. Requires FOUNDRY_TOKEN for tool discovery.${setupEnvSuffix}`,
       };
     }
 
     if (!cfg.command['rescan-palantir-mcp-tools']) {
       cfg.command['rescan-palantir-mcp-tools'] = {
         template: 'Re-scan palantir-mcp tools and patch tool gating.',
-        description:
-          'Re-discovers the palantir-mcp tool list and adds missing palantir-mcp_* toggles (does not overwrite existing toggles). Requires FOUNDRY_TOKEN.',
+        description: `Re-discovers the palantir-mcp tool list and adds missing palantir-mcp_* toggles (does not overwrite existing toggles). Requires FOUNDRY_TOKEN.${rescanEnvSuffix}`,
       };
     }
   }
@@ -86,13 +102,22 @@ const plugin: Plugin = async (input) => {
     agent: AgentConfig,
     agentName: 'foundry-librarian' | 'foundry'
   ): void {
+    const missingEnvVars: Array<'FOUNDRY_URL' | 'FOUNDRY_TOKEN'> = getMissingFoundryEnvVars();
+    const envSuffix: string =
+      missingEnvVars.length === 0
+        ? ''
+        : ` (inactive until ${missingEnvVars.join(' and ')} ${
+            missingEnvVars.length === 1 ? 'is' : 'are'
+          } exported)`;
+
     const defaultDescription: string =
       agentName === 'foundry-librarian'
-        ? 'Foundry exploration and context gathering (parallel-friendly)'
-        : 'Foundry execution agent (uses only enabled palantir-mcp tools)';
+        ? `Foundry exploration and context gathering (parallel-friendly)${envSuffix}`
+        : `Foundry execution agent (uses only enabled palantir-mcp tools)${envSuffix}`;
 
+    const defaultMode: 'subagent' | 'all' = agentName === 'foundry' ? 'all' : 'subagent';
     if (agent.mode !== 'subagent' && agent.mode !== 'primary' && agent.mode !== 'all') {
-      agent.mode = 'subagent';
+      agent.mode = defaultMode;
     }
 
     if (typeof agent['hidden'] !== 'boolean') agent['hidden'] = false;

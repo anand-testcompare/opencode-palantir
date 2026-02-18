@@ -127,7 +127,10 @@ export async function fetchAndParseMeta(langHash: string): Promise<string[]> {
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `Failed to decode pf_meta: ${detail}. The Pagefind binary format may have changed.`
+      `Failed to decode pf_meta: ${detail}. The Pagefind binary format may have changed.`,
+      {
+        cause: error,
+      }
     );
   }
 
