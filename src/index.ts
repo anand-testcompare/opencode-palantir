@@ -1,8 +1,8 @@
 import path from 'node:path';
 
-import type { Plugin } from '@opencode-ai/plugin';
+import type { Config, Plugin } from '@opencode-ai/plugin';
 import { tool } from '@opencode-ai/plugin/tool';
-import type { AgentConfig, Config } from '@opencode-ai/sdk';
+import type { AgentConfig } from '@opencode-ai/sdk';
 import {
   createDatabase,
   getPage,
@@ -86,7 +86,7 @@ const plugin: Plugin = async (input) => {
     if (!cfg.command['setup-palantir-mcp']) {
       cfg.command['setup-palantir-mcp'] = {
         template: 'Set up palantir-mcp for this repo.',
-        description: `Guided MCP setup for Foundry. Usage: /setup-palantir-mcp <foundry_api_url>. Requires FOUNDRY_TOKEN for tool discovery.${setupEnvSuffix}`,
+        description: `Guided MCP setup for Foundry. Usage: /setup-palantir-mcp. Requires FOUNDRY_URL and FOUNDRY_TOKEN for tool discovery.${setupEnvSuffix}`,
       };
     }
 

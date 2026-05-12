@@ -1,8 +1,7 @@
-name: Pr
+name: 01-pr-validation
 
 on:
   pull_request:
-  pull_request_target:
   workflow_dispatch:
 
 concurrency:
@@ -10,19 +9,17 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  actions: read
   contents: read
 
 jobs:
-  Check:
+  check:
+    name: 01-check
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: 01-checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
-      - name: Setup Tooling
+      - name: 02-setup-tooling
         uses: jdx/mise-action@d6e32c1796099e0f1f3ac741c220a8b7eae9e5dd
         with:
           install: true
@@ -30,11 +27,16 @@ jobs:
           experimental: true
         env:
           # Required for aqua-backed tool installs to avoid GitHub API rate limits in CI.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Run Checks
-        run: |
-          mise run setup
-          mise run lint
-          mise run test
-          mise run build
+      - name: 03-install-dependencies
+        run: mise run setup
+
+      - name: 04-lint
+        run: mise run lint
+
+      - name: 05-test
+        run: mise run test
+
+      - name: 06-build
+        run: mise run build

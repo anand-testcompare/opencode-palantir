@@ -5,7 +5,7 @@ import eslintPluginPrettier from 'eslint-plugin-prettier';
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'node_modules', '*.config.js', 'scripts', 'validate-parquet.ts'],
+    ignores: ['dist', 'node_modules', '.memory', '*.config.js', 'scripts', 'validate-parquet.ts'],
   },
   {
     files: ['**/*.ts'],

@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@openontology/opencode-palantir?logo=npm&label=npm)](https://www.npmjs.com/package/@openontology/opencode-palantir)
 [![downloads](https://img.shields.io/npm/dm/@openontology/opencode-palantir?logo=npm&label=downloads)](https://www.npmjs.com/package/@openontology/opencode-palantir)
 ![CI](https://img.shields.io/github/actions/workflow/status/anand-testcompare/opencode-palantir/pr.yml?branch=main&label=CI&logo=github)
-![bun](https://img.shields.io/badge/bun-1.3.2-000000?logo=bun&logoColor=white)
+![bun](https://img.shields.io/badge/bun-1.3.13-000000?logo=bun&logoColor=white)
 ![@opencode-ai/plugin](https://img.shields.io/github/package-json/dependency-version/anand-testcompare/opencode-palantir/dev/%40opencode-ai%2Fplugin?label=opencode%20plugin%20api&logo=npm)
 ![palantir-mcp](https://img.shields.io/npm/v/palantir-mcp?logo=npm&label=palantir-mcp)
 ![hyparquet](https://img.shields.io/github/package-json/dependency-version/anand-testcompare/opencode-palantir/hyparquet?label=hyparquet&logo=npm)
@@ -90,13 +90,13 @@ OpenCode automatically loads `.js`/`.ts` files from `.opencode/plugins/` at star
 
 ## Environment variables (Foundry MCP)
 
-This plugin never writes secrets to disk. In `opencode.jsonc`, the token is always referenced as
-`{env:FOUNDRY_TOKEN}`.
+This plugin never writes Foundry environment values to disk. In `opencode.jsonc`, `FOUNDRY_URL`
+and `FOUNDRY_TOKEN` are referenced as `{env:FOUNDRY_URL}` and `{env:FOUNDRY_TOKEN}`.
 
 ### Variables
 
 - `FOUNDRY_URL`
-  - Foundry base URL (used for auto-bootstrap and can be used as a default for `/setup-palantir-mcp`)
+  - Foundry base URL (used for auto-bootstrap, `/setup-palantir-mcp`, and `/rescan-palantir-mcp-tools`)
   - Example: `https://YOUR-STACK.palantirfoundry.com`
 - `FOUNDRY_TOKEN`
   - Foundry token used by `palantir-mcp` for tool discovery
@@ -170,9 +170,9 @@ patch repo-root `opencode.jsonc` to initialize:
 
 ### Guided setup and maintenance
 
-- `/setup-palantir-mcp <foundry_api_url>`
+- `/setup-palantir-mcp`
   - Creates/patches repo-root `opencode.jsonc`
-  - Adds `mcp.palantir-mcp` (if missing) as a local `npx palantir-mcp --foundry-api-url ...` server
+  - Adds `mcp.palantir-mcp` (if missing) as a local `npx palantir-mcp --foundry-api-url ...` server backed by `{env:FOUNDRY_URL}`
   - Enforces global deny: `tools.palantir-mcp_* = false`
   - Creates `foundry-librarian` and `foundry` agents
   - Discovers `palantir-mcp` tools and writes explicit `true/false` toggles under each agent
@@ -197,12 +197,14 @@ Recommendation: once you’re set up, pin the version in `opencode.jsonc`:
     "palantir-mcp": {
       "type": "local",
       "command": [
-        "npx",
-        "-y",
-        "palantir-mcp@<version>",
-        "--foundry-api-url",
-        "https://YOUR-STACK.palantirfoundry.com"
-      ]
+        "node",
+        "-e",
+        "const { spawn } = require('node:child_process'); const raw = (process.env.FOUNDRY_URL || '').trim(); const withScheme = /^https?:\\/\\//i.test(raw) ? raw : `https://${raw}`; const url = new URL(withScheme); const foundryUrl = `${url.protocol}//${url.host}`; const command = process.platform === 'win32' ? 'npx.cmd' : 'npx'; const child = spawn(command, ['-y', 'palantir-mcp@<version>', '--foundry-api-url', foundryUrl], { stdio: 'inherit' }); child.on('exit', (code) => process.exit(code ?? 1));"
+      ],
+      "environment": {
+        "FOUNDRY_URL": "{env:FOUNDRY_URL}",
+        "FOUNDRY_TOKEN": "{env:FOUNDRY_TOKEN}"
+      }
     }
   }
 }

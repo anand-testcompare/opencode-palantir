@@ -50,7 +50,7 @@ describe('autoBootstrapPalantirMcpIfConfigured', () => {
     expect(fs.existsSync(path.join(tmpDir, 'opencode.jsonc'))).toBe(false);
   });
 
-  it('writes schema-valid config and never persists FOUNDRY_TOKEN', async () => {
+  it('writes schema-valid config and never persists Foundry env values', async () => {
     process.env.FOUNDRY_TOKEN = 'SENTINEL_SECRET';
     process.env.FOUNDRY_URL = 'https://example.palantirfoundry.com';
 
@@ -67,13 +67,21 @@ describe('autoBootstrapPalantirMcpIfConfigured', () => {
 
     const text: string = fs.readFileSync(cfgPath, 'utf8');
     expect(text).not.toContain('SENTINEL_SECRET');
+    expect(text).not.toContain('https://example.palantirfoundry.com');
+    expect(text).toContain('{env:FOUNDRY_URL}');
     expect(text).toContain('{env:FOUNDRY_TOKEN}');
 
     const cfg = JSON.parse(text) as OpencodeConfig;
 
     expect(cfg.mcp?.['palantir-mcp']?.type).toBe('local');
-    expect(cfg.mcp?.['palantir-mcp']?.command).toContain('--foundry-api-url');
-    expect(cfg.mcp?.['palantir-mcp']?.command).toContain('https://example.palantirfoundry.com');
+    const command = cfg.mcp?.['palantir-mcp']?.command ?? [];
+    expect(command[0]).toBe('node');
+    expect(command[1]).toBe('-e');
+    expect(command[2]).toContain('process.env.FOUNDRY_URL');
+    expect(command[2]).toContain('new URL');
+    expect(command[2]).toContain('palantir-mcp');
+    expect(cfg.mcp?.['palantir-mcp']?.environment?.FOUNDRY_URL).toBe('{env:FOUNDRY_URL}');
+    expect(cfg.mcp?.['palantir-mcp']?.environment?.FOUNDRY_TOKEN).toBe('{env:FOUNDRY_TOKEN}');
 
     expect(cfg.tools?.['palantir-mcp_*']).toBe(false);
 

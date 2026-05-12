@@ -31,6 +31,19 @@ export type PatchResult = {
 export const OPENCODE_JSONC_FILENAME = 'opencode.jsonc';
 export const OPENCODE_JSON_FILENAME = 'opencode.json';
 
+const FOUNDRY_URL_ENV_REF: string = '{env:FOUNDRY_URL}';
+const FOUNDRY_TOKEN_ENV_REF: string = '{env:FOUNDRY_TOKEN}';
+const ENV_BACKED_PALANTIR_MCP_COMMAND: string = [
+  "const { spawn } = require('node:child_process');",
+  "const raw = (process.env.FOUNDRY_URL || '').trim();",
+  'const withScheme = /^https?:\\/\\//i.test(raw) ? raw : `https://${raw}`;',
+  'const url = new URL(withScheme);',
+  'const foundryUrl = `${url.protocol}//${url.host}`;',
+  "const command = process.platform === 'win32' ? 'npx.cmd' : 'npx';",
+  "const child = spawn(command, ['-y', 'palantir-mcp', '--foundry-api-url', foundryUrl], { stdio: 'inherit' });",
+  "child.on('exit', (code) => process.exit(code ?? 1));",
+].join(' ');
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
@@ -177,25 +190,30 @@ function removeUnsupportedPalantirMeta(data: Record<string, unknown>): void {
   if (data['palantir_mcp'] !== undefined) delete data['palantir_mcp'];
 }
 
-function ensureMcpServer(
-  data: Record<string, unknown>,
-  foundryApiUrl: string
-): { created: boolean } {
+function ensureMcpServer(data: Record<string, unknown>): { created: boolean } {
   const mcp: Record<string, unknown> = ensureObject(data, 'mcp');
   const existing: unknown = mcp['palantir-mcp'];
   if (existing !== undefined) return { created: false };
 
   mcp['palantir-mcp'] = {
     type: 'local',
-    command: ['npx', '-y', 'palantir-mcp', '--foundry-api-url', foundryApiUrl],
+    command: ['node', '-e', ENV_BACKED_PALANTIR_MCP_COMMAND],
     environment: {
-      FOUNDRY_TOKEN: '{env:FOUNDRY_TOKEN}',
+      FOUNDRY_URL: FOUNDRY_URL_ENV_REF,
+      FOUNDRY_TOKEN: FOUNDRY_TOKEN_ENV_REF,
     },
   };
   return { created: true };
 }
 
-export function extractFoundryApiUrlFromMcpConfig(data: Record<string, unknown>): string | null {
+function getEnvFoundryUrl(): string | null {
+  const raw: string | undefined = process.env.FOUNDRY_URL;
+  if (!raw) return null;
+  const trimmed: string = raw.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function getPalantirMcpServer(data: Record<string, unknown>): Record<string, unknown> | null {
   const mcp: unknown = data['mcp'];
   if (!isRecord(mcp)) return null;
   const server: unknown = mcp['palantir-mcp'];
@@ -203,16 +221,43 @@ export function extractFoundryApiUrlFromMcpConfig(data: Record<string, unknown>)
 
   const type: string | null = getString(server, 'type');
   if (type !== 'local') return null;
+  return server;
+}
+
+export function usesFoundryUrlEnvReferenceFromMcpConfig(data: Record<string, unknown>): boolean {
+  const server: Record<string, unknown> | null = getPalantirMcpServer(data);
+  if (!server) return false;
+
+  const environment: unknown = server['environment'];
+  const hasEnvMapping: boolean =
+    isRecord(environment) && environment['FOUNDRY_URL'] === FOUNDRY_URL_ENV_REF;
+
+  const command: unknown = server['command'];
+  if (!Array.isArray(command)) return hasEnvMapping;
+  const args: string[] = command.filter((x) => typeof x === 'string') as string[];
+  return hasEnvMapping || args.some((arg) => arg.includes('$FOUNDRY_URL'));
+}
+
+export function extractFoundryApiUrlFromMcpConfig(data: Record<string, unknown>): string | null {
+  const server: Record<string, unknown> | null = getPalantirMcpServer(data);
+  if (!server) return null;
 
   const command: unknown = server['command'];
   if (!Array.isArray(command)) return null;
   const args: string[] = command.filter((x) => typeof x === 'string') as string[];
 
   const idx: number = args.indexOf('--foundry-api-url');
-  if (idx === -1) return null;
-  const next: string | undefined = args[idx + 1];
-  if (!next) return null;
-  return next;
+  if (idx !== -1) {
+    const next: string | undefined = args[idx + 1];
+    if (!next) return null;
+    if (next === '$FOUNDRY_URL' || next === '${FOUNDRY_URL}' || next === FOUNDRY_URL_ENV_REF) {
+      return getEnvFoundryUrl();
+    }
+    return next;
+  }
+
+  if (usesFoundryUrlEnvReferenceFromMcpConfig(data)) return getEnvFoundryUrl();
+  return null;
 }
 
 function ensureGlobalDeny(data: Record<string, unknown>): void {
@@ -378,7 +423,6 @@ function applyToolToggles(
 export function patchConfigForSetup(
   input: Record<string, unknown>,
   opts: {
-    foundryApiUrl: string;
     toolNames: string[];
     profile: ProfileId;
     allowlist: ComputedAllowlist;
@@ -391,7 +435,7 @@ export function patchConfigForSetup(
 
   removeUnsupportedPalantirMeta(data);
   ensureGlobalDeny(data);
-  ensureMcpServer(data, opts.foundryApiUrl);
+  ensureMcpServer(data);
 
   const librarianAgent: Record<string, unknown> = ensureAgentBase(data, 'foundry-librarian');
   ensureAgentDefaults(librarianAgent, 'foundry-librarian');

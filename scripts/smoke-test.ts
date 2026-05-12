@@ -23,9 +23,9 @@ if (typeof listResult !== 'string' || listResult.length === 0) {
 } else if (listResult.includes('database not found')) {
   errors.push(`list_all_docs: database not found — run 'bun run src/docs/fetch-cli.ts' first`);
 } else {
-  const match = listResult.match(/\((\d+) pages\)/);
+  const match = listResult.match(/(?:total=|\()(\d+)(?: pages\))?/);
   const count = match ? parseInt(match[1], 10) : 0;
-  if (count < 100) {
+  if (count < 3000) {
     errors.push(`list_all_docs returned only ${count} pages, expected 3000+`);
   }
   console.log(`✓ list_all_docs: ${count} pages`);
