@@ -90,9 +90,10 @@ describe('/setup-palantir-mcp', () => {
   });
 
   it('shows concise guidance when required env is missing', async () => {
+    process.env.FOUNDRY_URL = 'https://example.palantirfoundry.com';
     delete process.env.FOUNDRY_TOKEN;
     const spy = vi.spyOn(mcpClient, 'listPalantirMcpTools');
-    const result = await runSetup('https://example.palantirfoundry.com');
+    const result = await runSetup('');
 
     expect(result.text).toContain('Missing required environment: FOUNDRY_TOKEN');
     expect(result.text).toContain(
@@ -101,19 +102,28 @@ describe('/setup-palantir-mcp', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it('normalizes URL and writes mcp server config', async () => {
+  it('normalizes URL and writes env-backed mcp server config', async () => {
+    process.env.FOUNDRY_URL = 'foo.palantirfoundry.com/abc';
     vi.spyOn(mcpClient, 'listPalantirMcpTools').mockResolvedValue(['list_datasets']);
 
-    await runSetup('foo.palantirfoundry.com/abc');
+    await runSetup('');
 
     const cfgPath = path.join(tmpDir, 'opencode.jsonc');
     const text = fs.readFileSync(cfgPath, 'utf8');
     const cfg = JSON.parse(text) as OpencodeConfig;
 
+    expect(text).not.toContain('https://foo.palantirfoundry.com');
+    expect(text).toContain('{env:FOUNDRY_URL}');
     expect(cfg.mcp).toBeTruthy();
     expect(cfg.mcp?.['palantir-mcp']).toBeTruthy();
-    expect(cfg.mcp?.['palantir-mcp']?.command).toContain('--foundry-api-url');
-    expect(cfg.mcp?.['palantir-mcp']?.command).toContain('https://foo.palantirfoundry.com');
+    const command = cfg.mcp?.['palantir-mcp']?.command ?? [];
+    expect(command[0]).toBe('node');
+    expect(command[1]).toBe('-e');
+    expect(command[2]).toContain('process.env.FOUNDRY_URL');
+    expect(command[2]).toContain('new URL');
+    expect(command[2]).toContain('palantir-mcp');
+    expect(cfg.mcp?.['palantir-mcp']?.environment?.FOUNDRY_URL).toBe('{env:FOUNDRY_URL}');
+    expect(cfg.mcp?.['palantir-mcp']?.environment?.FOUNDRY_TOKEN).toBe('{env:FOUNDRY_TOKEN}');
   });
 
   it('migrates opencode.json into opencode.jsonc and renames to .bak', async () => {
@@ -125,7 +135,8 @@ describe('/setup-palantir-mcp', () => {
       JSON.stringify({ plugin: ['x'], tools: { other_tool: true } }, null, 2)
     );
 
-    await runSetup('https://example.palantirfoundry.com');
+    process.env.FOUNDRY_URL = 'https://example.palantirfoundry.com';
+    await runSetup('');
 
     const cfgPath = path.join(tmpDir, 'opencode.jsonc');
     const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8')) as OpencodeConfig;
@@ -144,7 +155,8 @@ describe('/setup-palantir-mcp', () => {
     const prior = process.env.FOUNDRY_TOKEN;
     process.env.FOUNDRY_TOKEN = 'SENTINEL_SECRET';
     try {
-      await runSetup('https://example.palantirfoundry.com');
+      process.env.FOUNDRY_URL = 'https://example.palantirfoundry.com';
+      await runSetup('');
     } finally {
       if (prior === undefined) delete process.env.FOUNDRY_TOKEN;
       else process.env.FOUNDRY_TOKEN = prior;
@@ -152,6 +164,8 @@ describe('/setup-palantir-mcp', () => {
 
     const text = fs.readFileSync(path.join(tmpDir, 'opencode.jsonc'), 'utf8');
     expect(text).not.toContain('SENTINEL_SECRET');
+    expect(text).not.toContain('https://example.palantirfoundry.com');
+    expect(text).toContain('{env:FOUNDRY_URL}');
     expect(text).toContain('{env:FOUNDRY_TOKEN}');
   });
 
@@ -170,7 +184,8 @@ describe('/setup-palantir-mcp', () => {
     };
     fs.writeFileSync(cfgPath, JSON.stringify(existing, null, 2));
 
-    await runSetup('https://other.palantirfoundry.com');
+    process.env.FOUNDRY_URL = 'https://other.palantirfoundry.com';
+    await runSetup('');
 
     const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8')) as OpencodeConfig;
     expect(cfg.mcp?.['palantir-mcp']?.command).toEqual(['custom', 'command']);
@@ -183,7 +198,8 @@ describe('/setup-palantir-mcp', () => {
       'create_thing',
     ]);
 
-    await runSetup('https://example.palantirfoundry.com');
+    process.env.FOUNDRY_URL = 'https://example.palantirfoundry.com';
+    await runSetup('');
 
     const cfg = JSON.parse(
       fs.readFileSync(path.join(tmpDir, 'opencode.jsonc'), 'utf8')
@@ -222,10 +238,11 @@ describe('/setup-palantir-mcp', () => {
   it('is idempotent for repeated runs', async () => {
     vi.spyOn(mcpClient, 'listPalantirMcpTools').mockResolvedValue(['list_datasets', 'get_dataset']);
 
-    await runSetup('https://example.palantirfoundry.com');
+    process.env.FOUNDRY_URL = 'https://example.palantirfoundry.com';
+    await runSetup('');
     const first = fs.readFileSync(path.join(tmpDir, 'opencode.jsonc'), 'utf8');
 
-    await runSetup('https://example.palantirfoundry.com');
+    await runSetup('');
     const second = fs.readFileSync(path.join(tmpDir, 'opencode.jsonc'), 'utf8');
 
     expect(second).toBe(first);

@@ -1,4 +1,4 @@
-name: Build Artifact
+name: 03-build-artifact
 
 on:
   workflow_dispatch:
@@ -11,12 +11,13 @@ permissions:
 
 jobs:
   build:
+    name: 01-build-artifact
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: 01-checkout
         uses: actions/checkout@v4
 
-      - name: Setup Tooling
+      - name: 02-setup-tooling
         uses: jdx/mise-action@d6e32c1796099e0f1f3ac741c220a8b7eae9e5dd
         with:
           install: true
@@ -24,14 +25,14 @@ jobs:
           experimental: true
         env:
           # Required for aqua-backed tool installs to avoid GitHub API rate limits in CI.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Build
+      - name: 03-build
         run: |
           mise run setup
           mise run build
 
-      - name: Upload dist artifact
+      - name: 04-upload-dist-artifact
         uses: actions/upload-artifact@v4
         with:
           name: opencode-palantir-dist

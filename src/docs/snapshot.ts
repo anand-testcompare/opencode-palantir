@@ -1,3 +1,4 @@
+import type { Stats } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -67,7 +68,7 @@ async function ensureDirectoryExists(dbPath: string): Promise<void> {
   await fs.mkdir(path.dirname(dbPath), { recursive: true });
 }
 
-async function statIfExists(filePath: string): Promise<fs.Stats | null> {
+async function statIfExists(filePath: string): Promise<Stats | null> {
   try {
     return await fs.stat(filePath);
   } catch (err) {

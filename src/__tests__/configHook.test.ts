@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import type { Config } from '@opencode-ai/sdk';
+import type { Config } from '@opencode-ai/plugin';
 import * as snapshotModule from '../docs/snapshot.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

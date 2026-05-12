@@ -1,4 +1,4 @@
-name: Release
+name: 06-release
 
 on:
   push:
@@ -9,17 +9,21 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   process:
+    name: 01-release-please
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     outputs:
       releases_created: ${{ steps.release-please.outputs.releases_created }}
       prs_created: ${{ steps.release-please.outputs.prs_created }}
     steps:
-      - uses: googleapis/release-please-action@v4
+      - name: 01-release-please
+        uses: googleapis/release-please-action@v4
         id: release-please
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
@@ -28,22 +32,33 @@ jobs:
           skip-github-pull-request: false
 
   dispatch-publish:
+    name: 02-dispatch-publish
     needs: process
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     if: needs.process.outputs.releases_created == 'true' || needs.process.outputs.prs_created == 'true'
     steps:
-      - name: Dispatch publish for releases
+      - name: 01-dispatch-latest-publish
         if: needs.process.outputs.releases_created == 'true'
-        uses: peter-evans/repository-dispatch@v2
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: publish-package
-          client-payload: '{"tag": "latest"}'
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event_type: 'publish-package',
+              client_payload: { tag: 'latest' },
+            });
 
-      - name: Dispatch publish for prerelease
+      - name: 02-dispatch-next-publish
         if: needs.process.outputs.prs_created == 'true'
-        uses: peter-evans/repository-dispatch@v2
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: publish-package
-          client-payload: '{"tag": "next"}'
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event_type: 'publish-package',
+              client_payload: { tag: 'next' },
+            });

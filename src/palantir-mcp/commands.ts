@@ -6,6 +6,7 @@ import { normalizeFoundryBaseUrl } from './normalize-url.ts';
 import {
   OPENCODE_JSONC_FILENAME,
   extractFoundryApiUrlFromMcpConfig,
+  usesFoundryUrlEnvReferenceFromMcpConfig,
   mergeLegacyIntoJsonc,
   patchConfigForRescan,
   patchConfigForSetup,
@@ -155,7 +156,6 @@ export async function autoBootstrapPalantirMcpIfConfigured(worktree: string): Pr
 
     const allowlist = computeAllowedTools(profile, toolNames);
     const patch = patchConfigForSetup(merged, {
-      foundryApiUrl: normalized.url,
       toolNames,
       profile,
       allowlist,
@@ -185,28 +185,24 @@ export async function autoBootstrapPalantirMcpIfConfigured(worktree: string): Pr
 }
 
 export async function setupPalantirMcp(worktree: string, rawArgs: string): Promise<string> {
-  const urlFromArgs: string = rawArgs.trim();
+  void rawArgs;
+
   const urlFromEnv: string | null = getTrimmedEnvVar('FOUNDRY_URL');
   const token: string | null = getTrimmedEnvVar('FOUNDRY_TOKEN');
-  const urlArg: string = urlFromArgs || urlFromEnv || '';
-  if (!urlArg) {
+  if (!urlFromEnv) {
     const missingVars: Array<'FOUNDRY_URL' | 'FOUNDRY_TOKEN'> = ['FOUNDRY_URL'];
     if (!token) missingVars.push('FOUNDRY_TOKEN');
     return [
       formatMissingEnvGuidance(missingVars),
       '',
       'Usage:',
-      '  /setup-palantir-mcp <foundry_api_url>',
-      '',
-      'Or pass URL directly:',
-      '  /setup-palantir-mcp https://YOUR-STACK.palantirfoundry.com',
-      '',
-      'Example:',
-      '  /setup-palantir-mcp https://23dimethyl.usw-3.palantirfoundry.com',
+      '  export FOUNDRY_URL=https://YOUR-STACK.palantirfoundry.com',
+      '  export FOUNDRY_TOKEN=...',
+      '  /setup-palantir-mcp',
     ].join('\n');
   }
 
-  const normalized = normalizeFoundryBaseUrl(urlArg);
+  const normalized = normalizeFoundryBaseUrl(urlFromEnv);
   if ('error' in normalized) return `[ERROR] ${normalized.error}`;
 
   if (!token) return formatMissingEnvGuidance(['FOUNDRY_TOKEN']);
@@ -239,7 +235,6 @@ export async function setupPalantirMcp(worktree: string, rawArgs: string): Promi
 
   const allowlist = computeAllowedTools(profile, toolNames);
   const patch = patchConfigForSetup(merged, {
-    foundryApiUrl: normalized.url,
     toolNames,
     profile,
     allowlist,
@@ -292,7 +287,7 @@ export async function rescanPalantirMcpTools(worktree: string): Promise<string> 
   const readJsonc = await readOpencodeJsonc(worktree);
   if (!readJsonc.ok) {
     if ('missing' in readJsonc) {
-      return `[ERROR] Missing ${OPENCODE_JSONC_FILENAME}. Run /setup-palantir-mcp <foundry_api_url> first.`;
+      return `[ERROR] Missing ${OPENCODE_JSONC_FILENAME}. Run /setup-palantir-mcp first.`;
     }
     return readJsonc.error;
   }
@@ -303,9 +298,13 @@ export async function rescanPalantirMcpTools(worktree: string): Promise<string> 
 
   const foundryUrlRaw: string | null = extractFoundryApiUrlFromMcpConfig(baseData);
   if (!foundryUrlRaw) {
+    if (usesFoundryUrlEnvReferenceFromMcpConfig(baseData)) {
+      return formatMissingEnvGuidance(['FOUNDRY_URL']);
+    }
+
     return [
       '[ERROR] Could not find mcp.palantir-mcp local server with --foundry-api-url in config.',
-      'Run /setup-palantir-mcp <foundry_api_url> first.',
+      'Run /setup-palantir-mcp first.',
     ].join('\n');
   }
 

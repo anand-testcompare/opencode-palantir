@@ -33,11 +33,14 @@ const plugin = (await import('../index.ts')).default as unknown as MinimalPlugin
 describe('/rescan-palantir-mcp-tools', () => {
   let tmpDir: string;
   let priorToken: string | undefined;
+  let priorUrl: string | undefined;
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plugin-rescan-test-'));
     priorToken = process.env.FOUNDRY_TOKEN;
+    priorUrl = process.env.FOUNDRY_URL;
     process.env.FOUNDRY_TOKEN = 'TEST_TOKEN';
+    delete process.env.FOUNDRY_URL;
   });
 
   afterEach(() => {
@@ -45,6 +48,8 @@ describe('/rescan-palantir-mcp-tools', () => {
     vi.restoreAllMocks();
     if (priorToken === undefined) delete process.env.FOUNDRY_TOKEN;
     else process.env.FOUNDRY_TOKEN = priorToken;
+    if (priorUrl === undefined) delete process.env.FOUNDRY_URL;
+    else process.env.FOUNDRY_URL = priorUrl;
   });
 
   async function runRescan(): Promise<{ text: string }> {
@@ -81,6 +86,7 @@ describe('/rescan-palantir-mcp-tools', () => {
   });
 
   it('preserves existing palantir-mcp_* toggles and adds missing ones', async () => {
+    process.env.FOUNDRY_URL = 'https://example.palantirfoundry.com';
     vi.spyOn(mcpClient, 'listPalantirMcpTools').mockResolvedValue(['list_datasets', 'get_dataset']);
 
     const cfgPath = path.join(tmpDir, 'opencode.jsonc');
@@ -88,14 +94,11 @@ describe('/rescan-palantir-mcp-tools', () => {
       mcp: {
         'palantir-mcp': {
           type: 'local',
-          command: [
-            'npx',
-            '-y',
-            'palantir-mcp',
-            '--foundry-api-url',
-            'https://example.palantirfoundry.com',
-          ],
-          environment: { FOUNDRY_TOKEN: '{env:FOUNDRY_TOKEN}' },
+          command: ['node', '-e', 'process.env.FOUNDRY_URL; palantir-mcp'],
+          environment: {
+            FOUNDRY_URL: '{env:FOUNDRY_URL}',
+            FOUNDRY_TOKEN: '{env:FOUNDRY_TOKEN}',
+          },
         },
       },
       tools: { 'palantir-mcp_*': false },
