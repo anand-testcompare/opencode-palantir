@@ -61,6 +61,6 @@ GitHub does not automatically mirror npmjs.com packages into the GitHub "Package
 If you want versions to appear under GitHub Packages, you must publish an npm package to
 GitHub Packages (`npm.pkg.github.com`) as an additional registry.
 
-Note: GitHub Packages scopes are tied to the GitHub org/user (e.g. `@anand-testcompare/*`). If you
+Note: GitHub Packages scopes are tied to the GitHub org/user (e.g. `@anandpant/*`). If you
 want the GitHub package scope to match `@openontology/*`, the repo needs to live under a GitHub org
 named `openontology`.

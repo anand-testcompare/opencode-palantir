@@ -2,11 +2,11 @@
 
 [![npm](https://img.shields.io/npm/v/@openontology/opencode-palantir?logo=npm&label=npm)](https://www.npmjs.com/package/@openontology/opencode-palantir)
 [![downloads](https://img.shields.io/npm/dm/@openontology/opencode-palantir?logo=npm&label=downloads)](https://www.npmjs.com/package/@openontology/opencode-palantir)
-![CI](https://img.shields.io/github/actions/workflow/status/anand-testcompare/opencode-palantir/pr.yml?branch=main&label=CI&logo=github)
+![CI](https://img.shields.io/github/actions/workflow/status/anandpant/opencode-palantir/pr.yml?branch=main&label=CI&logo=github)
 ![bun](https://img.shields.io/badge/bun-1.3.13-000000?logo=bun&logoColor=white)
-![@opencode-ai/plugin](https://img.shields.io/github/package-json/dependency-version/anand-testcompare/opencode-palantir/dev/%40opencode-ai%2Fplugin?label=opencode%20plugin%20api&logo=npm)
+![@opencode-ai/plugin](https://img.shields.io/github/package-json/dependency-version/anandpant/opencode-palantir/dev/%40opencode-ai%2Fplugin?label=opencode%20plugin%20api&logo=npm)
 ![palantir-mcp](https://img.shields.io/npm/v/palantir-mcp?logo=npm&label=palantir-mcp)
-![hyparquet](https://img.shields.io/github/package-json/dependency-version/anand-testcompare/opencode-palantir/hyparquet?label=hyparquet&logo=npm)
+![hyparquet](https://img.shields.io/github/package-json/dependency-version/anandpant/opencode-palantir/hyparquet?label=hyparquet&logo=npm)
 
 OpenCode plugin that provides:
 
@@ -52,7 +52,7 @@ Avoid using `@latest` in config:
 To find the newest version and changelog:
 
 - NPM versions: https://www.npmjs.com/package/@openontology/opencode-palantir
-- GitHub releases: https://github.com/anand-testcompare/opencode-palantir/releases
+- GitHub releases: https://github.com/anandpant/opencode-palantir/releases
 - Repo changelog: `CHANGELOG.md`
 
 ### (Optional) Install per-project

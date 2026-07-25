@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 export const DEFAULT_DOCS_SNAPSHOT_URLS: string[] = [
-  'https://raw.githubusercontent.com/anand-testcompare/opencode-palantir/main/data/docs.parquet',
+  'https://raw.githubusercontent.com/anandpant/opencode-palantir/main/data/docs.parquet',
 ];
 
 const MIN_SNAPSHOT_BYTES = 64;
