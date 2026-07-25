@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.7](https://github.com/anandpant/opencode-palantir/compare/v0.1.6...v0.1.7) (2026-07-25)
+
+
+### Bug Fixes
+
+* update GitHub account references ([a8ffe2b](https://github.com/anandpant/opencode-palantir/commit/a8ffe2b9e8aac3b5380d3db3eec34ad3414f1f47))
+* update GitHub account references ([91a3875](https://github.com/anandpant/opencode-palantir/commit/91a3875423ee86507f36811ef7d22c34b725e182))
+
 ## [0.1.6](https://github.com/anand-testcompare/opencode-palantir/compare/v0.1.5...v0.1.6) (2026-02-18)
 
 
